@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>온라인마케팅실전 학습 포트폴리오</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,16 +21,7 @@
     --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #111110;
-      --ink: #eeece6;
-      --ink-2: #a9a69e;
-      --ink-3: #6e6c66;
-      --rule: #2b2a27;
-      --signal: #7fa3ee;
-    }
-  }
+  :root { color-scheme: light; }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
   body {
@@ -281,7 +273,6 @@
   <div class="topbar mono">
     <a href="#/" class="brand">
       <picture>
-        <source srcset="assets/kmu-logo-dark.png" media="(prefers-color-scheme: dark)">
         <img src="assets/kmu-logo.png" alt="계명대학교" width="383" height="96">
       </picture>
       <span class="course hide-sm">온라인마케팅실전 2026</span>
