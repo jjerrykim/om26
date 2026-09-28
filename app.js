@@ -251,7 +251,7 @@ function mountDashboard(uid) {
     </div>` : `<div class="side"><dl class="facts" id="facts"></dl></div>`;
   $("view").innerHTML = `
     <header class="intro">
-      <div>${mine ? "" : backLink("#/class", "수강생 전체")}<h1 id="headline"></h1></div>
+      <div>${mine ? "" : backLink("#/class", "수강생")}<h1 id="headline"></h1></div>
       ${side}
     </header>
     <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
@@ -656,16 +656,11 @@ function onProfileSubmit(e) {
 /* 수강생 전체 */
 function mountClass() {
   $("view").innerHTML = `
-    ${introHtml("온라인마케팅실전", "수강생 전체", `<p class="lead">단계별 진행률과 수강생별 진행 상황입니다. 이름을 누르면 해당 학생의 대시보드를 볼 수 있습니다.</p>`)}
-    <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
-    <div class="stats" id="stats"></div>
-    <main>
-      <div class="roster-head">
-        <h2>수강생</h2>
-        <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
-      </div>
-      <ol class="roster" id="roster"></ol>
-    </main>`;
+    <header class="class-head">
+      <div><h1>수강생</h1><p class="mono muted" id="class-sum"></p></div>
+      <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
+    </header>
+    <main><ol class="roster" id="roster"></ol></main>`;
   $("q").addEventListener("input", paintRoster);
 }
 function sortedStudents() {
@@ -674,22 +669,10 @@ function sortedStudents() {
 }
 function paintClass() {
   const list = sortedStudents();
-  const n = list.length;
-  $("flow").innerHTML = STAGES.map((s, i) => {
-    const done = list.filter(([, st]) => stageProgress(st, s).done).length;
-    const pct = n ? Math.round(done / n * 100) : 0;
-    return `<li><a class="cell" href="#/stage/${s.id}">
-      <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow">${icon("right")}</span></span>
-      <span class="name">${esc(s.name)}</span>
-      <span class="rate"><span class="track"><span style="width:${pct}%"></span></span><span class="label mono"><span>${done} / ${n}명</span><span>${pct}%</span></span></span>
-    </a></li>`;
-  }).join("");
   const tasks = allTasks();
-  const doneAll = list.reduce((a, [, s]) => a + tasks.filter(x => taskDone(s, x.stage, x.task)).length, 0);
-  $("stats").innerHTML = `
-    <div><b>${n}</b><span class="mono">참여 학생</span></div>
-    <div><b>${doneAll}</b><span class="mono">저장된 과제</span></div>
-    <div><b>${n && tasks.length ? Math.round(doneAll / (n * tasks.length) * 100) : 0}<span class="mono">%</span></b><span class="mono">평균 과제 완료율</span></div>`;
+  const done = list.reduce((a, [, s]) => a + tasks.filter(x => taskDone(s, x.stage, x.task)).length, 0);
+  const pct = list.length && tasks.length ? Math.round(done / (list.length * tasks.length) * 100) : 0;
+  $("class-sum").textContent = `${list.length}명 · 평균 완료율 ${pct}%`;
   paintRoster();
 }
 function paintRoster() {
@@ -700,19 +683,14 @@ function paintRoster() {
   const q = $("q").value.trim().toLowerCase();
   const tasks = allTasks();
   const list = sortedStudents().filter(([, s]) => !q || [s.name, s.dept, s.sid].some(v => String(v || "").toLowerCase().includes(q)));
-  const head = `<li class="r th mono" aria-hidden="true"><span>No.</span><span>이름</span><span class="dp-col">학과</span><span>학번</span>
-    <span class="strip">${STAGES.map((_, i) => `<span class="sq">${pad(i + 1)}</span>`).join("")}</span><span class="sum">완료</span></li>`;
-  if (!list.length) { el.innerHTML = head + `<li class="empty mono">${q ? "검색 결과 없음" : "아직 등록한 학생이 없습니다"}</li>`; return; }
-  el.innerHTML = head + list.map(([uid, s], i) => {
-    const c = STAGES.map(st => stageProgress(s, st).done);
+  if (!list.length) { el.innerHTML = `<li class="empty mono">${q ? "검색 결과 없음" : "아직 등록한 학생이 없습니다"}</li>`; return; }
+  el.innerHTML = list.map(([uid, s]) => {
     const d = tasks.filter(x => taskDone(s, x.stage, x.task)).length;
     return `<li><a class="r" href="#/s/${encodeURIComponent(uid)}">
-      <span class="n mono">${pad(i + 1)}</span>
-      <span class="nm${uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span>
-      <span class="dp dp-col">${esc(s.dept || "")}</span>
-      <span class="sid mono">${esc(s.sid || "")}</span>
-      <span class="strip" aria-label="단계별 진행 ${c.join(", ")}">${c.map(v => `<span class="sq${v ? "" : " none"}">${v || ""}</span>`).join("")}</span>
-      <span class="sum mono">${d}/${tasks.length}</span>
+      <span class="who"><span class="nm${uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span><span class="meta">${esc([s.dept, s.sid].filter(Boolean).join(" · "))}</span></span>
+      ${bar(d, tasks.length)}
+      <span class="cnt mono">${d} / ${tasks.length}</span>
+      <span class="go">${icon("right")}</span>
     </a></li>`;
   }).join("");
 }
