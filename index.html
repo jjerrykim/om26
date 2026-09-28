@@ -55,7 +55,7 @@
   }
   .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
   .brand img { display: block; height: 32px; width: auto; }
-  .brand .course { padding-left: 16px; border-left: 1px solid var(--rule); white-space: nowrap; }
+  .brand .course { padding-left: 16px; border-left: 1px solid var(--rule); white-space: nowrap; font-family: var(--sans); font-size: 18px; font-weight: 700; letter-spacing: -0.02em; text-transform: none; color: var(--ink); }
   .brand:hover .course { color: var(--signal); }
   .topbar nav { display: flex; gap: 20px; align-items: center; }
   .link { padding: 8px 0; background: none; border: 0; cursor: pointer; }
@@ -231,6 +231,7 @@
   .btn .ic { width: 15px; height: 15px; }
   .side { display: grid; gap: 12px; justify-items: end; min-width: 240px; }
   .side .link { justify-self: end; }
+  .side .edit { justify-self: end; margin-top: 4px; }
   .profile-fields { display: grid; gap: 16px; width: min(100%, 340px); }
   .profile-fields .btn { justify-self: start; }
   #facts-wrap { display: grid; gap: 8px; }
@@ -514,7 +515,7 @@
     .side { justify-items: start; min-width: 0; width: min(100%, 420px); }
     .facts { grid-template-columns: 64px auto; min-width: 0; }
     .facts dd { text-align: left; }
-    .side .link { justify-self: start; }
+    .side .link, .side .edit { justify-self: start; }
     .dl7 { grid-template-columns: minmax(0, 1fr); }
     .goals { grid-template-columns: minmax(0, 1fr); }
   }
