@@ -105,7 +105,6 @@
   .note.ok { color: var(--signal); }
 
   .profile { display: grid; gap: 16px; width: min(100%, 340px); }
-  .profile .btn { justify-self: start; }
   .facts { margin: 0; display: grid; grid-template-columns: auto auto; gap: 10px 28px; min-width: 240px; }
   .facts dt { color: var(--ink-3); }
   .facts dd { margin: 0; font-weight: 600; text-align: right; }
@@ -231,10 +230,6 @@
   .btn .ic { width: 15px; height: 15px; }
   .side { display: grid; gap: 12px; justify-items: end; min-width: 240px; }
   .side .link { justify-self: end; }
-  .side .edit { justify-self: end; margin-top: 4px; }
-  .profile-fields { display: grid; gap: 16px; width: min(100%, 340px); }
-  .profile-fields .btn { justify-self: start; }
-  #facts-wrap { display: grid; gap: 8px; }
   .intro .lead { max-width: 44ch; }
   .intro h1 .num { display: block; font-size: .45em; color: var(--ink-3); font-weight: 500; letter-spacing: 0; margin-bottom: 8px; }
   .eyebrow { margin: 0 0 12px; color: var(--signal); }
@@ -299,6 +294,7 @@
   .result .sec-h { border-bottom-color: var(--signal); }
   .rform { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 28px; padding: clamp(16px, 3vw, 28px); background: color-mix(in srgb, var(--ink) 3%, transparent); }
   .rform .wide, .rform fieldset, .rform .actions { grid-column: 1 / -1; }
+  .rform .actions .logout { margin-left: auto; }
   .rform .actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
   fieldset legend { padding: 0; margin-bottom: 12px; color: var(--ink-3); }
@@ -515,14 +511,13 @@
     .side { justify-items: start; min-width: 0; width: min(100%, 420px); }
     .facts { grid-template-columns: 64px auto; min-width: 0; }
     .facts dd { text-align: left; }
-    .side .link, .side .edit { justify-self: start; }
+    .side .link { justify-self: start; }
     .dl7 { grid-template-columns: minmax(0, 1fr); }
     .goals { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 640px) {
     .side { justify-items: stretch; min-width: 0; }
     .side .link { justify-self: start; }
-    .profile-fields { width: 100%; }
     .grid2, .grid3, .grid4, .swot, .gcards.n2, .gcards.n4, .checks { grid-template-columns: minmax(0, 1fr); }
     .rform { grid-template-columns: minmax(0, 1fr); padding: 16px; }
     .rform .btn { width: 100%; }

@@ -128,6 +128,7 @@ function currentRoute() {
   }
   if (parts[0] === "s" && parts[1]) return { name: "student", uid: parts[1] };
   if (parts[0] === "class") return { name: "class" };
+  if (parts[0] === "profile") return { name: "profile" };
   if (parts[0] === "import") return { name: "import" };
   return { name: "home" };
 }
@@ -139,6 +140,7 @@ function routeKey(r) {
   if (!app.user) return "gate";
   if (r.name === "student") return r.uid === app.user.uid ? "dash:" + r.uid : "dash:" + r.uid;
   if (r.name === "class") return "class";
+  if (r.name === "profile") return "profile";
   if (r.name === "import") return "import";
   return "dash:" + app.user.uid;
 }
@@ -152,6 +154,7 @@ function route() {
     else if (key === "wait") $("view").innerHTML = `<p class="empty mono">불러오는 중</p>`;
     else if (key === "gate") mountGate();
     else if (key === "class") mountClass();
+    else if (key === "profile") mountProfile();
     else if (key === "import") mountImport();
     else if (key.startsWith("dash:")) mountDashboard(key.slice(5));
     else if (key.startsWith("stage:")) mountStage(r.stage);
@@ -162,6 +165,7 @@ function route() {
 }
 function paint() {
   if (mounted === "class") paintClass();
+  else if (mounted === "profile") paintProfile();
   else if (mounted.startsWith("dash:")) paintDashboard(mounted.slice(5));
   else if (mounted.startsWith("stage:")) paintStage(stageOf(mounted.slice(6)));
   else if (mounted.startsWith("task:")) { const [, sid, i] = mounted.split(":"); paintTask(stageOf(sid), +i); }
@@ -177,8 +181,9 @@ function renderNav(r) {
   }
   const dash = r.name === "home" || (r.name === "student" && r.uid === app.user.uid);
   $("nav").innerHTML = `
-    <a class="link" href="#/" ${dash ? 'aria-current="page"' : ""}>내 대시보드</a>
-    <a class="link" href="#/class" ${r.name === "class" || (r.name === "student" && !dash) ? 'aria-current="page"' : ""}>수강생</a>
+    <a class="link" href="#/" ${dash ? 'aria-current="page"' : ""}>대시보드</a>
+    <a class="link" href="#/class" ${r.name === "class" || (r.name === "student" && !dash) ? 'aria-current="page"' : ""}>전체보기</a>
+    <a class="link" href="#/profile" ${r.name === "profile" ? 'aria-current="page"' : ""}>내정보</a>
     <button class="link mono hide-sm" type="button" data-act="logout">로그아웃</button>`;
 }
 document.addEventListener("click", e => {
@@ -188,7 +193,6 @@ document.addEventListener("click", e => {
   if (a === "login") login();
   else if (a === "logout") logout();
   else if (a === "copy") copyPrompt(act);
-  else if (a === "edit-profile") { $("profile-wrap").hidden = false; $("facts-wrap").hidden = true; }
 });
 
 /* 공통 조각 */
@@ -239,33 +243,16 @@ function pointsHtml(points) {
 /* 대시보드 */
 function mountDashboard(uid) {
   const mine = uid === app.user?.uid;
-  const side = mine ? `
-    <div class="side">
-      <div id="facts-wrap"><dl class="facts" id="facts"></dl><button class="btn ghost edit" type="button" data-act="edit-profile">정보 수정</button></div>
-      <form class="profile" id="profile" autocomplete="off">
-        <div id="profile-wrap" class="profile-fields">
-          <label class="field"><span class="mono">이름</span><input name="name" maxlength="20" placeholder="이름" required></label>
-          <label class="field"><span class="mono">학과</span><input name="dept" maxlength="40" placeholder="학과"></label>
-          <label class="field"><span class="mono">학번</span><input name="sid" maxlength="20" inputmode="numeric" placeholder="학번"></label>
-          <button class="btn" type="submit">저장하기</button>
-        </div>
-        <p class="note mono" id="profile-note" role="status"></p>
-      </form>
-    </div>` : `<div class="side"><dl class="facts" id="facts"></dl></div>`;
+  const side = `<div class="side"><dl class="facts" id="facts"></dl></div>`;
   $("view").innerHTML = `
     <header class="intro">
-      <div>${mine ? "" : backLink("#/class", "수강생")}<h1 id="headline"></h1></div>
+      <div>${mine ? "" : backLink("#/class", "전체보기")}<h1 id="headline"></h1></div>
       ${side}
     </header>
     <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
     <div class="stats" id="stats"></div>
     <div id="oneline"></div>
     <main id="board"></main>`;
-  if (mine) {
-    const f = $("profile");
-    f.addEventListener("input", () => { f.dataset.dirty = "1"; });
-    f.addEventListener("submit", onProfileSubmit);
-  }
 }
 function paintDashboard(uid) {
   const mine = uid === app.user?.uid;
@@ -276,17 +263,7 @@ function paintDashboard(uid) {
   document.title = data.name ? `${data.name} | 온라인마케팅실전` : "온라인마케팅실전 학습 포트폴리오";
 
   $("facts").innerHTML = [["학과", data.dept], ["학번", data.sid]].map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
-  if (mine) {
-    const f = $("profile");
-    const needName = !data.name;
-    if (needName) { $("profile-wrap").hidden = false; $("facts-wrap").hidden = true; }
-    else if (!f.dataset.dirty) { $("profile-wrap").hidden = true; $("facts-wrap").hidden = false; }
-    if (!f.dataset.dirty && document.activeElement?.form !== f) {
-      f.elements.name.value = data.name || "";
-      f.elements.dept.value = data.dept || "";
-      f.elements.sid.value = data.sid || "";
-    }
-  }
+  if (mine && app.loaded && !data.name) { location.replace("#/profile"); return; }
 
   $("flow").innerHTML = STAGES.map((st, i) => {
     const p = stageProgress(data, st);
@@ -463,7 +440,7 @@ function mountStage(st) {
   const i = STAGES.indexOf(st);
   $("view").innerHTML = `
     <header class="intro stage-intro">
-      <div>${backLink("#/", app.user ? "내 대시보드" : "처음으로")}
+      <div>${backLink("#/", app.user ? "대시보드" : "처음으로")}
         <p class="eyebrow mono">${pad(i + 1)}${st.chapter ? ` · ${esc(st.chapter)}` : ""}</p>
         <h1>${esc(st.name)}</h1>
       </div>
@@ -532,7 +509,7 @@ function mountTask(st, index) {
       </section>
       <nav class="pager">
         ${prev ? `<a href="#/stage/${st.id}/${index}">${icon("left")}<span><span class="mono muted">이전</span>${esc(prev.title)}</span></a>` : `<a href="#/stage/${st.id}">${icon("left")}<span><span class="mono muted">과제 목록</span>${esc(st.name)}</span></a>`}
-        ${next ? `<a class="nx" href="#/stage/${st.id}/${index + 2}"><span><span class="mono muted">다음</span>${esc(next.title)}</span>${icon("right")}</a>` : `<a class="nx" href="#/"><span><span class="mono muted">완료</span>내 대시보드</span>${icon("right")}</a>`}
+        ${next ? `<a class="nx" href="#/stage/${st.id}/${index + 2}"><span><span class="mono muted">다음</span>${esc(next.title)}</span>${icon("right")}</a>` : `<a class="nx" href="#/"><span><span class="mono muted">완료</span>대시보드</span>${icon("right")}</a>`}
       </nav>
     </main>`;
   const f = $("rform");
@@ -648,7 +625,7 @@ function onResultSubmit(e, st, t) {
   e.preventDefault();
   const f = e.target;
   const note = $("rnote");
-  if (!me()?.name) { flash(note, false, `먼저 <a href="#/">내 대시보드</a>에서 이름을 저장하세요`); return; }
+  if (!me()?.name) { flash(note, false, `먼저 <a href="#/profile">내정보</a>에서 이름을 저장하세요`); return; }
   const bad = urlFieldsInvalid(f, t);
   if (bad) { flash(note, false, "링크 주소를 확인하세요"); f.elements.namedItem(bad).focus(); return; }
   const data = collectForm(f, t);
@@ -667,7 +644,32 @@ function onResultSubmit(e, st, t) {
   });
 }
 
-/* 프로필 */
+/* 내정보 */
+function mountProfile() {
+  $("view").innerHTML = `
+    <header class="class-head"><div><h1>내정보</h1><p class="mono muted">대시보드와 전체보기에 표시되는 정보입니다.</p></div></header>
+    <main class="task-page"><section class="sec">
+      <form class="rform" id="profile" autocomplete="off">
+        <label class="field"><span class="mono">이름</span><input name="name" maxlength="20" placeholder="이름" required></label>
+        <label class="field"><span class="mono">학과</span><input name="dept" maxlength="40" placeholder="학과"></label>
+        <label class="field"><span class="mono">학번</span><input name="sid" maxlength="20" inputmode="numeric" placeholder="학번"></label>
+        <label class="field"><span class="mono">로그인 계정</span><input value="${esc(app.user?.email || "")}" disabled></label>
+        <div class="actions"><button class="btn" type="submit">저장하기</button><p class="note mono" id="profile-note" role="status"></p><button class="btn ghost logout" type="button" data-act="logout">로그아웃</button></div>
+      </form>
+    </section></main>`;
+  const f = $("profile");
+  f.addEventListener("input", () => { f.dataset.dirty = "1"; });
+  f.addEventListener("submit", onProfileSubmit);
+}
+function paintProfile() {
+  const f = $("profile");
+  const data = me() || {};
+  if (!f || f.dataset.dirty || f.contains(document.activeElement)) return;
+  f.elements.name.value = data.name || "";
+  f.elements.dept.value = data.dept || "";
+  f.elements.sid.value = data.sid || "";
+  if (app.loaded && !data.name) flash($("profile-note"), false, "처음 오셨네요. 이름을 입력하고 저장하세요");
+}
 function onProfileSubmit(e) {
   e.preventDefault();
   const f = e.target;
@@ -678,8 +680,7 @@ function onProfileSubmit(e) {
     try {
       await saveMine(patch);
       delete f.dataset.dirty;
-      $("profile-wrap").hidden = true; $("facts-wrap").hidden = false;
-      flash(note, true, "저장되었습니다");
+      flash(note, true, `저장되었습니다 · <a href="#/">대시보드로 이동</a>`);
     } catch { flash(note, false, "저장하지 못했습니다"); }
   });
 }
@@ -727,7 +728,7 @@ function checkImport() {
 function onImport(e) {
   e.preventDefault();
   const f = e.target, note = $("inote");
-  if (!me()?.name) { flash(note, false, `먼저 <a href="#/">내 대시보드</a>에서 이름을 저장하세요`); return; }
+  if (!me()?.name) { flash(note, false, `먼저 <a href="#/profile">내정보</a>에서 이름을 저장하세요`); return; }
   const r = parseImport(f.elements.json.value.trim());
   if (r.error) { flash(note, false, r.error); return; }
   withBusy(f, async () => {
@@ -740,7 +741,7 @@ function onImport(e) {
 function mountClass() {
   $("view").innerHTML = `
     <header class="class-head">
-      <div><h1>수강생</h1><p class="mono muted" id="class-sum"></p></div>
+      <div><h1>전체보기</h1><p class="mono muted" id="class-sum"></p></div>
       <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
     </header>
     <main><ol class="roster" id="roster"></ol></main>`;
