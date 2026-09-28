@@ -160,35 +160,31 @@
   @media (min-width: 900px) { .notice .lines p { white-space: nowrap; } }
 
   /* 수강생 목록 */
-  .roster-head {
+  .class-head { display: flex; justify-content: space-between; align-items: end; gap: 16px 32px; flex-wrap: wrap; padding: clamp(40px, 6vw, 72px) 0 20px; border-bottom: 1px solid var(--ink); }
+  .class-head h1 { margin: 0 0 6px; font-size: var(--fs-title); line-height: 1.1; letter-spacing: -0.03em; }
+  .class-head p { margin: 0; }
+  .class-head .field { width: min(100%, 320px); }
+  .roster { list-style: none; margin: 0 0 clamp(48px, 8vw, 120px); padding: 0; }
+  .roster .r { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 280px) 56px 20px; gap: 24px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--rule); transition: background-color .2s; }
+  .roster .r:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  .roster .r:hover .nm, .roster .r:hover .go { color: var(--signal); }
+  .roster .who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; min-width: 0; }
+  .roster .nm { font-weight: 650; font-size: var(--fs-body); }
+  .roster .nm.me::after { content: "나"; margin-left: 6px; font: 500 11px var(--sans); color: var(--signal); }
+  .roster .meta { color: var(--ink-3); font-size: var(--fs-sm); }
+  .roster .cnt { text-align: right; color: var(--ink-2); }
+  .roster .go { color: var(--ink-3); display: grid; place-items: center; }
+  .roster .go .ic { width: 16px; height: 16px; }
     display: flex; justify-content: space-between; align-items: end; gap: 16px 32px; flex-wrap: wrap;
     padding: clamp(40px, 6vw, 72px) 0 20px;
   }
-  .roster-head h2 { margin: 0; font-size: var(--fs-h2); letter-spacing: -0.03em; }
-  .roster-head .field { width: min(100%, 320px); }
-  .roster { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
-  .roster .r {
     display: grid; align-items: center; gap: 16px;
     grid-template-columns: 36px minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr) repeat(5, 28px) 48px;
     padding: 14px 0; border-bottom: 1px solid var(--rule);
   }
-  .roster a.r { transition: background-color .2s; }
-  .roster a.r:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
-  .roster a.r:hover .nm { color: var(--signal); }
-  .roster .th { padding: 10px 0; color: var(--ink-3); }
-  .roster .n, .roster .sid, .roster .sum { color: var(--ink-3); }
-  .roster .nm { font-weight: 650; font-size: var(--fs-body); letter-spacing: -0.01em; }
-  .roster .nm.me::after { content: "나"; margin-left: 8px; font: 500 11px var(--mono); color: var(--signal); vertical-align: 2px; }
-  .roster .dp { color: var(--ink-2); }
-  .roster .sum { text-align: right; }
-  .roster .th .sum { text-align: right; }
-  .roster .strip { display: contents; }
-  .sq {
     width: 28px; height: 28px; display: grid; place-items: center;
     font: 500 11px var(--mono); color: var(--paper); background: var(--ink);
   }
-  .sq.none { background: transparent; color: var(--ink-3); box-shadow: inset 0 0 0 1px var(--rule); }
-  .roster .th .sq { background: none; color: var(--ink-3); box-shadow: none; }
 
   /* 단계 */
   .stage {
@@ -397,8 +393,6 @@
     .stage { grid-template-columns: minmax(0, 1fr); }
     .stage-info { position: static; }
     .intro { grid-template-columns: minmax(0, 1fr); align-items: start; }
-    .roster .r { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr) repeat(5, 28px) 40px; }
-    .roster .dp-col { display: none; }
   }
   /* 모바일 */
   @media (max-width: 640px) {
@@ -413,14 +407,10 @@
     .ticks { justify-content: flex-end; }
     .stats div { padding: 14px 12px 16px 0; }
     .stats div + div { padding-left: 12px; }
-    .roster .th { display: none; }
-    .roster .r { grid-template-columns: 28px minmax(0, 1fr) auto; gap: 6px 12px; padding: 16px 0; }
-    .roster .n { grid-row: 1 / span 3; align-self: start; padding-top: 3px; }
-    .roster .dp-col { display: block; grid-column: 2 / -1; font-size: 14px; }
-    .roster .sid { grid-column: 3; grid-row: 1; }
-    .roster .strip { display: flex; gap: 4px; grid-column: 2 / -1; }
-    .roster .sum { display: none; }
     .topbar .hide-sm { display: none; }
+    .roster .r { grid-template-columns: minmax(0, 1fr) 48px; gap: 10px 12px; }
+    .roster .r .rate { grid-column: 1 / -1; grid-row: 2; }
+    .roster .go { display: none; }
     .brand img { height: 26px; }
   }
 
