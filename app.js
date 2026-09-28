@@ -344,53 +344,79 @@ function dashTask(data, st, t, j, mine) {
 const lines = v => esc(v || "").split("\n").filter(Boolean).map(l => `<li>${l}</li>`).join("");
 const cell = v => v ? nl(v) : `<span class="muted">-</span>`;
 function renderResult(data, st, t, r) {
+  const items = v => String(v || "").split("\n").map(x => x.trim()).filter(Boolean);
+  const ul = v => { const a = items(v); return a.length ? `<ul>${a.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : `<p class="muted">-</p>`; };
   switch (t.id) {
     case "business":
-      return `<dl class="dl7">${t.fields.map(f => `<div><dt>${esc(f.label)}</dt><dd>${cell(r[f.k])}</dd></div>`).join("")}</dl>`;
+      return `<div class="canvas">${t.fields.map((f, i) => `
+        <div class="ctile${i < 4 ? "" : " lean"}">
+          <span class="clabel"><b>${esc(f.label.slice(0, 1))}</b>${esc(f.label.slice(2))}</span>
+          <p>${cell(r[f.k])}</p>
+        </div>`).join("")}
+        <span class="ctag mono">비즈니스 모델 캔버스</span><span class="ctag mono lean">린 캔버스</span>
+      </div>`;
     case "c3pest":
-      return `<div class="grid3">${[["Customer 고객", r.customer], ["Company 자사", r.company], ["Competitor 경쟁", r.competitor]].map(([k, v]) => `<div class="pane"><span class="mono muted">${k}</span><ul>${lines(v) || "<li class='muted'>-</li>"}</ul></div>`).join("")}</div>
-        ${r.pest ? `<div class="pane wide"><span class="mono muted">PEST 선별 항목</span><ul>${lines(r.pest)}</ul></div>` : ""}`;
+      return `<div class="c3">${[["Customer", "고객", r.customer], ["Company", "자사", r.company], ["Competitor", "경쟁사", r.competitor]].map(([en, ko, v]) => `
+        <div class="c3col"><h4>${en}<span>${ko}</span></h4>${ul(v)}</div>`).join("")}</div>
+        ${r.pest ? `<div class="pest"><span class="mono muted">PEST 선별</span>${items(r.pest).map(x => { const [k, ...rest] = x.split(":"); return rest.length ? `<p><b>${esc(k.trim())}</b>${esc(rest.join(":").trim())}</p>` : `<p>${esc(x)}</p>`; }).join("")}</div>` : ""}`;
     case "swot":
-      return `<div class="swot">${[["S 강점", r.s], ["W 약점", r.w], ["O 기회", r.o], ["T 위협", r.t]].map(([k, v]) => `<div class="pane"><span class="mono muted">${k}</span><ul>${lines(v) || "<li class='muted'>-</li>"}</ul></div>`).join("")}</div>
-        <div class="grid4">${[["SO", r.so], ["ST", r.st], ["WO", r.wo], ["WT", r.wt]].map(([k, v]) => `<div class="pane"><span class="mono muted">${k} 전략</span><p>${cell(v)}</p></div>`).join("")}</div>
-`;
+      return `<div class="swot-m">
+          <span class="ax top1 mono">긍정</span><span class="ax top2 mono">부정</span>
+          <span class="ax side1 mono">내부</span><span class="ax side2 mono">외부</span>
+          ${[["S", "강점", r.s, "pos"], ["W", "약점", r.w, "neg"], ["O", "기회", r.o, "pos"], ["T", "위협", r.t, "neg"]].map(([k, ko, v, c]) => `
+          <div class="q ${c} q${k}"><span class="qk">${k}</span><h4>${ko}</h4>${ul(v)}</div>`).join("")}
+        </div>
+        <div class="cross">${[["SO", "강점 × 기회", r.so], ["ST", "강점 × 위협", r.st], ["WO", "약점 × 기회", r.wo], ["WT", "약점 × 위협", r.wt]].map(([k, sub, v]) => `
+          <div class="xcard"><span class="xk">${k}</span><span class="mono muted">${sub}</span><p>${cell(v)}</p></div>`).join("")}</div>`;
     case "journey": {
       const f = t.fields[0];
-      return `<div class="tbl-wrap"><table class="tbl dtbl"><thead><tr><th>단계</th>${f.cols.map(c => `<th>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((row, i) => {
+      return `<ol class="journey">${f.rows.map((row, i) => {
         const v = (r.rows || [])[i] || {};
-        return `<tr class="${r.home === row ? "hl" : ""}"><th scope="row">${esc(row)}${r.home === row ? `<span class="tag mono">홈페이지</span>` : ""}</th>${f.cols.map(c => `<td>${cell(v[c.k])}</td>`).join("")}</tr>`;
-      }).join("")}</tbody></table></div>
+        const on = r.home === row;
+        return `<li class="${on ? "on" : ""}">
+          <span class="jn mono">${pad(i + 1)}</span>
+          <h4>${esc(row)}${on ? `<span class="tag mono">홈페이지</span>` : ""}</h4>
+          <p class="jact">${cell(v.act)}</p>
+          ${v.ch ? `<div class="chips">${String(v.ch).split(",").map(c => c.trim()).filter(Boolean).map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}
+          ${v.worry ? `<p class="jworry">"${esc(v.worry)}"</p>` : ""}
+          ${v.give ? `<p class="jgive">${esc(v.give)}</p>` : ""}
+        </li>`;
+      }).join("")}</ol>
         ${r.home ? `<p class="dnote"><span class="mono muted">홈페이지가 담당할 단계 · ${esc(r.home)}</span>${cell(r.homeWhy)}</p>` : ""}`;
     }
     case "rivals": {
       const list = (r.list || []).filter(hasValue);
-      const f = t.fields[0].fields;
-      return `<div class="tbl-wrap"><table class="tbl dtbl"><thead><tr><th></th>${list.map((c, i) => `<th>${esc(c.name || `경쟁사 ${i + 1}`)}</th>`).join("")}</tr></thead><tbody>${f.slice(1).map(x => `<tr><th scope="row">${esc(x.label)}</th>${list.map(c => `<td>${cell(c[x.k])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
-        ${r.diff ? `<p class="dnote"><span class="mono muted">다르게 할 수 있는 지점</span>${nl(r.diff)}</p>` : ""}`;
+      return `<div class="rivals">${list.map((c, i) => `
+        <div class="rcard"><span class="mono muted">경쟁사 ${i + 1}</span><h4>${esc(c.name || "-")}</h4>
+          <p class="rprice${/\d/.test(c.price || "") ? "" : " txt"}">${esc(c.price || "-")}</p>
+          <p class="rp"><b>+</b>${cell(c.plus)}</p><p class="rm"><b>−</b>${cell(c.minus)}</p></div>`).join("")}</div>
+        ${r.diff ? `<div class="diff"><span class="mono">우리가 다르게 할 지점</span>${ul(r.diff)}</div>` : ""}`;
     }
     case "bench": {
       const list = (r.list || []).filter(hasValue);
-      const f = t.fields[0].fields;
-      return `<div class="tbl-wrap"><table class="tbl dtbl"><thead><tr><th></th>${list.map((c, i) => { const u = safeUrl(c.url); return `<th>${u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">홈페이지 ${i + 1} ${icon("ur")}</a>` : `홈페이지 ${i + 1}`}</th>`; }).join("")}</tr></thead><tbody>${f.slice(1).map(x => `<tr><th scope="row">${esc(x.label)}</th>${list.map(c => `<td>${cell(c[x.k])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
-        ${r.pages ? `<p class="dnote"><span class="mono muted">내 홈페이지에 꼭 들어갈 페이지</span>${nl(r.pages)}</p>` : ""}`;
+      return `<div class="rivals">${list.map((c, i) => { const u = safeUrl(c.url); return `
+        <div class="rcard"><span class="mono muted">홈페이지 ${i + 1}</span>
+          ${u ? `<a class="more mono" href="${esc(u)}" target="_blank" rel="noopener noreferrer">열기 ${icon("ur")}</a>` : ""}
+          <p class="hero-q">${cell(c.hero)}</p>
+          <p class="rp"><b>신뢰</b>${cell(c.trust)}</p></div>`; }).join("")}</div>
+        ${r.pages ? `<div class="pages"><span class="mono muted">내 홈페이지에 꼭 들어갈 페이지</span><div class="chips big">${String(r.pages).split("/").map(x => x.trim()).filter(Boolean).map(x => `<span>${esc(x)}</span>`).join("")}</div></div>` : ""}`;
     }
     case "stp": {
       const segs = r.segs || [];
-      const rank = i => r.first === `세그먼트 ${i + 1}` ? "1순위" : r.second === `세그먼트 ${i + 1}` ? "2순위" : "";
-      return `<div class="stp">
-        <div>
-          ${r.position ? `<p class="quote">${esc(r.position)}</p>` : ""}
-          <ol class="segs">${segs.map((sg, i) => hasValue(sg) ? `<li class="${rank(i) === "1순위" ? "on" : ""}"><span class="mono muted">${pad(i + 1)}</span><div><strong>${esc(sg.name || "-")}</strong>${rank(i) ? `<span class="tag mono">${rank(i)}</span>` : ""}<p>${esc(sg.desc || "")}</p></div></li>` : "").join("")}</ol>
-          ${r.why ? `<p class="dnote"><span class="mono muted">순서의 근거</span>${nl(r.why)}</p>` : ""}
-        </div>
-        ${mapSvg(r)}
-      </div>`;
+      const rank = i => r.first === `세그먼트 ${i + 1}` ? 1 : r.second === `세그먼트 ${i + 1}` ? 2 : 0;
+      return `${r.position ? `<p class="position">${esc(r.position)}</p>` : ""}
+        <div class="stp">
+          <div class="segs2">${segs.map((sg, i) => hasValue(sg) ? `<div class="seg r${rank(i)}"><span class="mono">${rank(i) ? `${rank(i)}순위` : `세그먼트 ${i + 1}`}</span><h4>${esc(sg.name || "-")}</h4><p>${esc(sg.desc || "")}</p></div>` : "").join("")}</div>
+          ${mapSvg(r)}
+        </div>`;
     }
     case "plan": {
       const goals = (r.goals || []).filter(hasValue);
       const weak = (r.weak || []).filter(hasValue);
-      return `${goals.length ? `<ol class="goals">${goals.map(g => `<li><span class="mono muted">${esc(g.channel || "채널")} · ${esc(g.metric || "지표")}</span><span class="gv">${esc(g.now || "측정 필요")} ${icon("right")} <b>${esc(g.target || "-")}</b></span></li>`).join("")}</ol>` : ""}
-        ${weak.length ? `<div class="grid2">${weak.map(w => `<div class="pane"><span class="mono muted">${esc(w.stage || "약한 단계")}</span><p><b>0원</b> ${cell(w.free)}</p><p><b>30만원</b> ${cell(w.paid)}</p></div>`).join("")}</div>` : ""}`;
+      return `${goals.length ? `<div class="kpis">${goals.map(g => `
+          <div class="kpi"><span class="mono muted">${esc(g.channel || "채널")}</span><h4>${esc(g.metric || "지표")}</h4>
+            <div class="kv"><span class="now">${esc(g.now || "측정 필요")}</span>${icon("right")}<b class="${/\d/.test(g.target || "") ? "" : "txt"}">${esc(g.target || "-")}</b></div></div>`).join("")}</div>` : ""}
+        ${weak.length ? `<div class="grid2 weak">${weak.map(w => `<div class="pane"><span class="mono muted">약한 단계</span><h4>${esc(w.stage || "-")}</h4><p><span class="pill">0원</span>${cell(w.free)}</p><p><span class="pill paid">30만원</span>${cell(w.paid)}</p></div>`).join("")}</div>` : ""}`;
     }
     case "summary":
       return checklistHtml(data);
@@ -408,7 +434,8 @@ function checklistHtml(data) {
     ["STP와 포지셔닝 문장", ["stp"]],
     ["4P · 4C 실행안과 3개월 숫자 목표", ["plan"]]
   ];
-  return `<ul class="checks">${items.map(([label, ids]) => {
+  const okN = items.filter(([, ids]) => ids.every(id => taskDone(data, st, st.tasks.find(t => t.id === id)))).length;
+  return `<div class="checkbar"><span class="mono">${okN} / ${items.length} 완료</span>${bar(okN, items.length)}</div><ul class="checks">${items.map(([label, ids]) => {
     const ok = ids.every(id => taskDone(data, st, st.tasks.find(t => t.id === id)));
     return `<li class="${ok ? "ok" : ""}"><span class="box">${ok ? icon("check") : ""}</span>${esc(label)}</li>`;
   }).join("")}</ul>`;
@@ -423,6 +450,7 @@ function mapSvg(r) {
   return `<figure class="pmap">
     <svg viewBox="0 0 ${S} ${S}" role="img" aria-label="포지셔닝 맵">
       <rect x="0.5" y="0.5" width="${S - 1}" height="${S - 1}" class="pm-frame"/>
+      <rect x="${C}" y="${P / 2}" width="${C - P / 2}" height="${C - P / 2}" class="pm-best"/>
       <line x1="${P / 2}" y1="${C}" x2="${S - P / 2}" y2="${C}" class="pm-axis"/>
       <line x1="${C}" y1="${P / 2}" x2="${C}" y2="${S - P / 2}" class="pm-axis"/>
       <text x="8" y="${C - 8}" class="pm-lab">${esc(xl || "")}</text>
