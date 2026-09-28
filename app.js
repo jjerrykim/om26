@@ -235,7 +235,7 @@ function pointsHtml(points) {
 
 /* 대시보드 */
 function mountDashboard(uid) {
-  const mine = uid === app.user.uid;
+  const mine = uid === app.user?.uid;
   const side = mine ? `
     <div class="side">
       <div id="facts-wrap"><dl class="facts" id="facts"></dl><button class="link mono" type="button" data-act="edit-profile">정보 수정</button></div>
@@ -265,7 +265,7 @@ function mountDashboard(uid) {
   }
 }
 function paintDashboard(uid) {
-  const mine = uid === app.user.uid;
+  const mine = uid === app.user?.uid;
   const s = app.students.get(uid);
   if (!s && !mine) { $("headline").innerHTML = app.loaded ? "학생을 찾을 수 없습니다" : "불러오는 중"; return; }
   const data = s || {};
@@ -329,7 +329,7 @@ function todoHtml(data, st, mine) {
 }
 function dashTask(data, st, t, j, mine) {
   const r = resultOf(data, st, t);
-  const head = `<div class="dcard-head"><h3>${t.card ? `<span class="mono muted">${esc(t.card)}</span>` : ""}${esc(t.title)}</h3>${mine ? `<a class="more mono" href="#/stage/${st.id}/${j + 1}">${hasValue(r) ? "수정" : "작성하기"} ${icon("right")}</a>` : ""}</div>`;
+  const head = `<div class="dcard-head"><h3>${t.card ? `<span class="mono muted">${esc(t.card)}</span>` : ""}${esc(t.id === "summary" ? "기획서 점검" : t.title)}</h3>${mine ? `<a class="more mono" href="#/stage/${st.id}/${j + 1}">${hasValue(r) ? "수정" : "작성하기"} ${icon("right")}</a>` : ""}</div>`;
   if (!hasValue(r)) return `<div class="dcard is-empty">${head}<p class="empty-line mono">아직 작성하지 않았습니다</p></div>`;
   return `<div class="dcard">${head}${renderResult(data, st, t, r)}</div>`;
 }
@@ -421,7 +421,7 @@ function mapSvg(r) {
       <text x="${S - 8}" y="${C - 8}" class="pm-lab" text-anchor="end">${esc(xr || "")}</text>
       <text x="${C + 8}" y="18" class="pm-lab">${esc(yt || "")}</text>
       <text x="${C + 8}" y="${S - 10}" class="pm-lab">${esc(yb || "")}</text>
-      ${pts.map(p => `<g class="${p.me ? "pm-me" : "pm-pt"}"><circle cx="${pos(p.x)}" cy="${pos(-p.y)}" r="${p.me ? 7 : 5}"/><text x="${pos(p.x) + 10}" y="${pos(-p.y) + 4}">${esc(p.name)}</text></g>`).join("")}
+      ${pts.map(p => { const right = p.x > 1; return `<g class="${p.me ? "pm-me" : "pm-pt"}"><circle cx="${pos(p.x)}" cy="${pos(-p.y)}" r="${p.me ? 7 : 5}"/><text x="${pos(p.x) + (right ? -12 : 12)}" y="${pos(-p.y) + 4}" text-anchor="${right ? "end" : "start"}">${esc(p.name)}</text></g>`; }).join("")}
     </svg>
     ${pts.length ? "" : `<figcaption class="mono muted">좌표를 입력하면 맵이 그려집니다</figcaption>`}
   </figure>`;
