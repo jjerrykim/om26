@@ -32,11 +32,11 @@ function flash(el, ok, msg) {
   el._t = setTimeout(() => { el.textContent = ""; }, 5000);
 }
 const ICON = {
-  up: "M12 19V5M5 12l7-7 7 7",
-  down: "M12 5v14M5 12l7 7 7-7",
-  left: "M19 12H5M12 5l-7 7 7 7",
-  right: "M5 12h14M12 5l7 7-7 7",
-  ur: "M7 17L17 7M8 7h9v9",
+  up: "M6 15l6-6 6 6",
+  down: "M6 9l6 6 6-6",
+  left: "M15 6l-6 6 6 6",
+  right: "M9 6l6 6-6 6",
+  ur: "M9 6l6 6-6 6",
   check: "M5 12.5l4.5 4.5L19 7.5",
   copy: "M9 9h10v10H9zM5 15V5h10"
 };
