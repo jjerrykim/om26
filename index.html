@@ -329,9 +329,13 @@
   .more { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); white-space: nowrap; align-self: end; padding-bottom: 2px; }
   .more:hover { color: var(--signal); }
   .more .ic { width: 14px; height: 14px; }
-  .dcard { display: grid; gap: 16px; padding: 24px 0; border-bottom: 1px solid var(--rule); }
+  .dcard { display: grid; gap: 20px; padding: 36px 0 40px; border-bottom: 1px solid var(--rule); }
+  .dcard + .dcard, .dcard + .todo { border-top: 0; }
+  .tnum { display: inline-grid; place-items: center; min-width: 36px; height: 36px; padding: 0 6px; font-size: 15px; font-weight: 700; letter-spacing: 0; color: var(--paper); background: var(--signal); }
   .dcard-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
-  .dcard-head h3 { display: flex; gap: 10px; align-items: baseline; margin: 0; font-size: var(--fs-h3); letter-spacing: -0.01em; }
+  .dcard-head { align-items: center !important; }
+  .dcard-head .more { align-self: center; padding-bottom: 0; }
+  .dcard-head h3 { display: flex; gap: 12px; align-items: center; margin: 0; font-size: 22px; letter-spacing: -0.02em; }
   .dcard.is-empty { gap: 6px; }
   .dcard.is-empty h3 { color: var(--ink-3); }
   .empty-line { margin: 0; color: var(--ink-3); }
