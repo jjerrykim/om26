@@ -1,9 +1,9 @@
-// Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에 나오는 설정값을 그대로 붙여 넣습니다.
+// Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에 나오는 설정값
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCNPSZnA59thh3pcC_0Bug2aqQhqkzNASY",
+  authDomain: "onlinemarketing2026-cce51.firebaseapp.com",
+  projectId: "onlinemarketing2026-cce51",
+  storageBucket: "onlinemarketing2026-cce51.firebasestorage.app",
+  messagingSenderId: "1085708523198",
+  appId: "1:1085708523198:web:2111209c626a03d3d170ef"
 };
