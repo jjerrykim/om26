@@ -114,11 +114,10 @@
     width: 100%; height: 100%; padding: 20px 18px 22px; text-align: left;
     background: none; border: 0; transition: background-color .2s;
   }
-  .flow button.cell { cursor: pointer; }
-  .flow button.cell:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+  .flow a.cell:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
   .flow .idx { display: flex; justify-content: space-between; color: var(--ink-3); }
   .flow .idx .arrow { display: inline-flex; transition: transform .2s, color .2s; }
-  .flow button.cell:hover .arrow { transform: translateY(2px); color: var(--signal); }
+  .flow a.cell:hover .arrow { transform: translateX(2px); color: var(--signal); }
   .flow .name { font-size: clamp(18px, 1.7vw, 22px); font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
   .ticks { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; min-height: 10px; }
   .ticks i { width: 10px; height: 10px; background: var(--ink); }
@@ -233,6 +232,195 @@
   .to-top .ic { width: 18px; height: 18px; }
   .to-top:hover { color: var(--signal); border-color: var(--signal); }
   .back { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* 공통 보조 */
+  .muted { color: var(--ink-3); }
+  textarea {
+    width: 100%; min-width: 0; margin: 0; padding: 8px 0; resize: vertical;
+    font: inherit; font-size: 15px; line-height: 1.55; color: var(--ink);
+    background: transparent; border: 0; border-bottom: 1px solid var(--ink-3); border-radius: 0;
+  }
+  textarea:focus { outline: none; border-bottom-color: var(--signal); }
+  .note a { color: var(--signal); text-decoration: underline; text-underline-offset: 3px; }
+  .btn.ghost { color: var(--ink); background: transparent; border-color: var(--rule); min-height: 36px; padding: 0 14px; }
+  .btn.ghost:hover { color: var(--paper); background: var(--signal); border-color: var(--signal); }
+  .btn .ic { width: 15px; height: 15px; }
+  .side { display: grid; gap: 12px; justify-items: end; min-width: 240px; }
+  .side .link { justify-self: end; }
+  .profile-fields { display: grid; gap: 16px; width: min(100%, 340px); }
+  .profile-fields .btn { justify-self: start; }
+  #facts-wrap { display: grid; gap: 8px; }
+  .intro .lead { max-width: 44ch; }
+  .intro h1 .num { display: block; font-size: .45em; color: var(--ink-3); font-weight: 500; letter-spacing: 0; margin-bottom: 8px; }
+  .eyebrow { margin: 0 0 12px; color: var(--signal); }
+  .stage-intro h1, .task-intro h1 { font-size: clamp(34px, 5.2vw, 72px); }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 4px; overflow-x: auto; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs a { display: inline-flex; align-items: center; gap: 8px; flex: none; padding: 14px 14px; color: var(--ink-2); white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tabs a .mono { color: var(--ink-3); }
+  .tabs a:hover { color: var(--ink); }
+  .tabs a[aria-current="page"] { color: var(--ink); font-weight: 650; border-bottom-color: var(--signal); }
+  .tabs a.ok .ic { color: var(--signal); width: 14px; height: 14px; }
+
+  /* 섹션 */
+  .stage-page, .task-page, #board { padding-bottom: clamp(48px, 8vw, 120px); }
+  .sec { padding: clamp(32px, 5vw, 56px) 0 0; }
+  .sec-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin: 0 0 20px; padding-bottom: 12px; border-bottom: 1px solid var(--ink); font-size: clamp(20px, 2.2vw, 26px); letter-spacing: -0.02em; }
+  .sec-h span { font-size: 14px; font-weight: 400; color: var(--ink-3); letter-spacing: 0; }
+  details.concept > summary { list-style: none; cursor: pointer; }
+  details.concept > summary::-webkit-details-marker { display: none; }
+  details.concept > summary .sec-h::after { content: "접기"; margin-left: auto; font: 500 12px var(--mono); color: var(--ink-3); }
+  details.concept:not([open]) > summary .sec-h::after { content: "펼치기"; }
+
+  /* 개념 블록 */
+  .blocks { display: grid; gap: 20px; }
+  .bh { margin: 16px 0 0; font-size: 19px; letter-spacing: -0.01em; }
+  .bh span { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; color: var(--ink-3); }
+  .bp { margin: 0; color: var(--ink-2); max-width: 80ch; }
+  .bkey { margin: 0; padding: 14px 18px; border-left: 3px solid var(--signal); background: color-mix(in srgb, var(--signal) 6%, transparent); font-weight: 600; }
+  .bsrc { margin: 0; font-size: 12px; color: var(--ink-3); }
+  .tbl-wrap { overflow-x: auto; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
+  .tbl th, .tbl td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); }
+  .tbl thead th { font-weight: 600; color: var(--ink-3); font-size: 12px; border-bottom: 1px solid var(--ink); white-space: nowrap; }
+  .tbl tbody th { font-weight: 600; white-space: nowrap; }
+  .bcards { display: grid; gap: 12px; }
+  .bcards.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bcards.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .bcards.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .bcard { display: grid; align-content: start; gap: 6px; padding: 16px 18px; border: 1px solid var(--rule); }
+  .bcard strong { font-size: 16px; letter-spacing: -0.01em; }
+  .bcard ul, .bsteps ul, .prompt-side ul, .lab ul, .pane ul { margin: 0; padding-left: 16px; color: var(--ink-2); font-size: 14px; }
+  .bsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; counter-reset: s; }
+  .bsteps > li { position: relative; padding: 16px 18px; border-top: 2px solid var(--ink); background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  .bsteps > li strong { display: block; margin-bottom: 4px; }
+
+  /* 과제 목록 */
+  .tasklist { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+  .tasklist a { display: grid; grid-template-columns: 48px minmax(0, 1fr) 96px; gap: 16px; align-items: start; padding: 20px 0; border-bottom: 1px solid var(--rule); transition: background-color .2s; }
+  .tasklist a:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  .tasklist .tn { font-size: 20px; color: var(--ink-3); }
+  .tasklist .tb { display: grid; gap: 4px; }
+  .tasklist .tb strong { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 18px; letter-spacing: -0.01em; }
+  .tasklist .tb > span { color: var(--ink-2); font-size: 14px; }
+  .tasklist .ts { justify-self: end; display: inline-flex; gap: 4px; align-items: center; color: var(--ink-3); }
+  .tasklist a.ok .ts { color: var(--signal); }
+  .tasklist a:hover strong { color: var(--signal); }
+
+  /* 따라하기, 프롬프트 */
+  .follow { margin: 0; padding: 0; list-style: none; counter-reset: f; display: grid; gap: 0; border-top: 1px solid var(--rule); }
+  .follow li { counter-increment: f; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .follow li::before { content: counter(f, decimal-leading-zero); font: 500 13px var(--mono); color: var(--signal); padding-top: 2px; }
+  .prompt { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+  .prompt-main { border: 1px solid var(--ink); min-width: 0; }
+  .prompt-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--rule); }
+  .prompt pre { margin: 0; padding: 18px 20px; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; font: 15px/1.75 var(--sans); color: var(--ink); background: color-mix(in srgb, var(--ink) 2%, transparent); }
+  .prompt-side { display: grid; gap: 12px; align-content: start; }
+  .prompt-side > div { padding: 16px 18px; border: 1px solid var(--rule); }
+  .prompt-side strong { display: block; margin-bottom: 6px; }
+  .lab { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; padding: 20px; border: 1px solid var(--ink); }
+  .lab strong { display: block; margin-bottom: 8px; }
+  .lab dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; }
+  .lab dt { color: var(--ink-3); }
+  .lab dd { margin: 0; }
+
+  /* 결과 입력 */
+  .result .sec-h { border-bottom-color: var(--signal); }
+  .rform { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 28px; padding: clamp(16px, 3vw, 28px); background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  .rform .wide, .rform fieldset, .rform .actions { grid-column: 1 / -1; }
+  .rform .actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+  fieldset legend { padding: 0; margin-bottom: 12px; color: var(--ink-3); }
+  .gtable { display: grid; gap: 0; border-top: 1px solid var(--ink); }
+  .ghead, .grow { display: grid; grid-template-columns: 96px repeat(var(--cols), minmax(0, 1fr)); gap: 12px; }
+  .ghead { padding: 10px 0; color: var(--ink-3); border-bottom: 1px solid var(--rule); }
+  .grow { padding: 8px 0; border-bottom: 1px solid var(--rule); align-items: start; }
+  .grow-h { font-weight: 650; padding-top: 8px; }
+  .grow label > span { display: none; }
+  .gcards { display: grid; gap: 14px; }
+  .gcards.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gcards.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gcards.n4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .gcard { display: grid; gap: 14px; align-content: start; padding: 16px; background: var(--paper); border: 1px solid var(--rule); }
+  .gtitle { color: var(--signal); }
+
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: clamp(40px, 6vw, 64px); }
+  .pager a { display: flex; align-items: center; gap: 14px; padding: 18px 20px; border: 1px solid var(--rule); transition: border-color .2s; }
+  .pager a:hover { border-color: var(--signal); }
+  .pager a > span { display: grid; gap: 2px; font-weight: 600; }
+  .pager a.nx { justify-content: flex-end; text-align: right; grid-column: 2; }
+  .pager .ic { width: 20px; height: 20px; flex: none; }
+
+  /* 대시보드 */
+  .stats .next { display: inline-flex; align-items: center; gap: 8px; font-size: clamp(18px, 2vw, 24px); font-weight: 650; line-height: 1.3; letter-spacing: -0.02em; color: var(--signal); }
+  .stats .next .ic { width: 18px; height: 18px; }
+  .dash-stage { padding: clamp(40px, 6vw, 72px) 0 0; scroll-margin-top: 8px; }
+  .dash-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 24px; align-items: end; padding-bottom: 16px; border-bottom: 1px solid var(--ink); }
+  .dash-head .stage-num { font-size: clamp(40px, 5vw, 64px); }
+  .dash-head h2 { margin: 0; font-size: clamp(24px, 2.8vw, 32px); letter-spacing: -0.03em; }
+  .dash-head p { margin: 4px 0 0; color: var(--ink-2); font-size: 15px; }
+  .more { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); white-space: nowrap; }
+  .more:hover { color: var(--signal); }
+  .more .ic { width: 14px; height: 14px; }
+  .dcard { display: grid; gap: 16px; padding: 24px 0; border-bottom: 1px solid var(--rule); }
+  .dcard-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  .dcard-head h3 { display: flex; gap: 10px; align-items: baseline; margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  .dcard.is-empty { gap: 6px; }
+  .dcard.is-empty h3 { color: var(--ink-3); }
+  .empty-line { margin: 0; color: var(--ink-3); }
+  .dl7 { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+  .dl7 > div { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .dl7 dt { color: var(--ink-3); font-size: 14px; }
+  .dl7 dd { margin: 0; }
+  .grid2, .grid3, .grid4, .swot { display: grid; gap: 12px; }
+  .grid2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .swot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pane { display: grid; align-content: start; gap: 8px; padding: 16px 18px; border: 1px solid var(--rule); min-width: 0; }
+  .pane p { margin: 0; }
+  .pane.wide { margin-top: 12px; }
+  .swot .pane:nth-child(1) { border-top: 2px solid var(--signal); }
+  .dnote { display: grid; gap: 4px; margin: 0; padding: 14px 18px; background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  .dfile { display: inline-flex; align-items: center; gap: 6px; color: var(--signal); }
+  .dfile .ic { width: 14px; height: 14px; }
+  .dtbl tr.hl { background: color-mix(in srgb, var(--signal) 7%, transparent); }
+  .tag { display: inline-block; margin-left: 8px; padding: 2px 6px; font-size: 11px; color: var(--paper); background: var(--signal); vertical-align: 2px; }
+  .quote { margin: 0 0 12px; font-size: 20px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.45; }
+  .quote.big { font-size: clamp(20px, 2.4vw, 28px); font-weight: 500; }
+  .quote b { color: var(--signal); font-weight: 700; }
+  .stp { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; align-items: start; }
+  .segs { list-style: none; margin: 0 0 12px; padding: 0; border-top: 1px solid var(--rule); }
+  .segs li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+  .segs li.on strong { color: var(--signal); }
+  .segs p { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
+  .pmap { margin: 0; }
+  .pmap svg { display: block; width: 100%; height: auto; }
+  .pm-frame { fill: none; stroke: var(--rule); }
+  .pm-axis { stroke: var(--ink-3); stroke-width: 1; }
+  .pm-lab { font: 500 11px var(--sans); fill: var(--ink-3); }
+  .pm-pt circle { fill: var(--ink); }
+  .pm-me circle { fill: var(--signal); }
+  .pm-pt text, .pm-me text { font: 600 12px var(--sans); fill: var(--ink); }
+  .pmap figcaption { margin-top: 8px; text-align: center; }
+  .goals { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .goals li { display: grid; gap: 4px; padding: 16px 18px; border: 1px solid var(--ink); }
+  .goals .gv { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); }
+  .goals .gv b { font-size: 22px; color: var(--signal); }
+  .goals .ic { width: 14px; height: 14px; }
+  .checks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+  .checks li { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rule); color: var(--ink-3); }
+  .checks li.ok { color: var(--ink); }
+  .checks .box { display: grid; place-items: center; width: 20px; height: 20px; flex: none; border: 1px solid var(--ink-3); color: var(--paper); }
+  .checks li.ok .box { background: var(--signal); border-color: var(--signal); }
+  .checks .box .ic { width: 14px; height: 14px; stroke-width: 2.5; }
+  .dlinks { list-style: none; margin: 0; padding: 0; }
+  .dlinks li { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--rule); }
+  .dlinks a:hover { color: var(--signal); }
+  .dlinks .ic { width: 13px; height: 13px; }
+
   :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 
   /* 태블릿 */
@@ -275,6 +463,37 @@
     .topbar .hide-sm { display: none; }
     .brand img { height: 26px; }
   }
+
+  @media (max-width: 1024px) {
+    .bcards.c3, .bcards.c4, .grid4, .gcards.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .gcards.n3 { grid-template-columns: minmax(0, 1fr); }
+    .bsteps { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .prompt { grid-template-columns: minmax(0, 1fr); }
+    .stp { grid-template-columns: minmax(0, 1fr); }
+    .pmap { max-width: 360px; }
+    .dl7 { grid-template-columns: minmax(0, 1fr); }
+    .goals { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .side { justify-items: stretch; min-width: 0; }
+    .side .link { justify-self: start; }
+    .profile-fields { width: 100%; }
+    .bcards.c2, .bcards.c3, .bcards.c4, .grid2, .grid3, .grid4, .swot, .gcards.n2, .gcards.n4, .checks, .bsteps { grid-template-columns: minmax(0, 1fr); }
+    .rform { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+    .rform .btn { width: 100%; }
+    .lab { grid-template-columns: minmax(0, 1fr); }
+    .tasklist a { grid-template-columns: 32px minmax(0, 1fr); }
+    .tasklist .ts { grid-column: 2; justify-self: start; }
+    .ghead { display: none; }
+    .grow { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 14px 0; }
+    .grow label > span { display: block; color: var(--ink-3); font-size: 12px; }
+    .dl7 > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+    .dash-head { grid-template-columns: minmax(0, 1fr); }
+    .dash-head .more { justify-self: start; }
+    .pager { grid-template-columns: minmax(0, 1fr); }
+    .pager a.nx { grid-column: 1; }
+    .dcard-head { flex-wrap: wrap; }
+  }
 </style>
 </head>
 <body>
@@ -296,465 +515,6 @@
   </footer>
 </div>
 
-<script type="module">
-import { firebaseConfig } from "./firebase-config.js";
-
-const STAGES = [
-  {
-    id: "product",
-    name: "내 제품 정의",
-    desc: "판매하거나 알리고 싶은 제품과 서비스를 정하고, 누구에게 어떤 가치를 주는지 정리합니다.",
-    topics: ["제품 선정", "핵심 가치", "타깃 고객", "경쟁 제품"]
-  },
-  {
-    id: "strategy",
-    name: "마케팅 전략 기획",
-    desc: "정의한 제품을 바탕으로 시장을 나누고, 포지셔닝과 채널, 목표 지표를 설계합니다.",
-    topics: ["STP", "포지셔닝", "채널 전략", "목표 KPI"]
-  },
-  {
-    id: "vibecoding",
-    name: "바이브코딩",
-    desc: "AI 도구와 대화하며 제품 홈페이지와 랜딩페이지를 직접 만들어 봅니다.",
-    topics: ["AI 코딩 도구", "홈페이지 제작", "랜딩페이지", "배포"]
-  },
-  {
-    id: "execution",
-    name: "광고 운영",
-    desc: "만든 페이지에 분석 도구와 마케팅 채널을 연결하고 실제 캠페인을 운영합니다.",
-    topics: ["분석 도구 연동", "SNS 채널", "광고 집행", "콘텐츠 발행"]
-  },
-  {
-    id: "analysis",
-    name: "성과분석",
-    desc: "수집한 데이터를 목표 지표와 비교해 성과를 평가하고 개선 방향을 도출합니다.",
-    topics: ["데이터 수집", "KPI 평가", "인사이트", "개선안"]
-  }
-];
-const TYPES = ["슬라이드", "문서", "실습", "영상", "웹페이지", "기타"];
-const MAX_ITEMS = 50;
-const FB = "https://www.gstatic.com/firebasejs/10.14.1";
-
-/* 공통 함수 */
-const $ = id => document.getElementById(id);
-const pad = n => String(n).padStart(2, "0");
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-function safeUrl(v) {
-  v = String(v || "").trim();
-  if (!v) return "";
-  if (!/^[a-z][a-z0-9+.-]*:/i.test(v)) v = "https://" + v;
-  try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : ""; } catch { return ""; }
-}
-const itemsOf = (s, stageId) => Array.isArray(s?.materials?.[stageId]) ? s.materials[stageId] : [];
-const countsOf = s => STAGES.map(st => itemsOf(s, st.id).length);
-function flash(el, ok, msg) {
-  el.textContent = msg;
-  el.className = "note mono" + (ok ? " ok" : "");
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.textContent = ""; }, 3500);
-}
-
-/* 상태 */
-const app = { fb: null, user: null, authReady: false, students: new Map(), loaded: false, error: "" };
-const configured = Boolean(firebaseConfig?.apiKey && firebaseConfig?.projectId && !/^YOUR/i.test(firebaseConfig.apiKey));
-
-/* Firebase */
-let unsubscribe = null;
-async function initFirebase() {
-  const [appMod, authMod, fsMod] = await Promise.all([
-    import(`${FB}/firebase-app.js`),
-    import(`${FB}/firebase-auth.js`),
-    import(`${FB}/firebase-firestore.js`)
-  ]);
-  const fbApp = appMod.initializeApp(firebaseConfig);
-  app.fb = { auth: authMod.getAuth(fbApp), db: fsMod.getFirestore(fbApp), authMod, fsMod };
-  authMod.onAuthStateChanged(app.fb.auth, user => {
-    app.user = user;
-    app.authReady = true;
-    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-    app.students.clear();
-    app.loaded = false;
-    if (user) listen();
-    route();
-  });
-}
-function listen() {
-  const { db, fsMod } = app.fb;
-  unsubscribe = fsMod.onSnapshot(fsMod.collection(db, "students"), snap => {
-    app.students.clear();
-    snap.forEach(d => app.students.set(d.id, d.data()));
-    app.loaded = true;
-    app.error = "";
-    paint();
-  }, err => {
-    app.error = err.code === "permission-denied" ? "열람 권한이 없습니다." : "자료를 불러오지 못했습니다.";
-    app.loaded = true;
-    paint();
-  });
-}
-async function login() {
-  const { auth, authMod } = app.fb;
-  try {
-    await authMod.signInWithPopup(auth, new authMod.GoogleAuthProvider());
-  } catch (e) {
-    if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") {
-      await authMod.signInWithRedirect(auth, new authMod.GoogleAuthProvider());
-    } else if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") {
-      alert("로그인하지 못했습니다. 카카오톡 등 앱 안의 브라우저라면 Chrome이나 Safari로 열어 주세요.");
-    }
-  }
-}
-const logout = () => app.fb.authMod.signOut(app.fb.auth);
-async function saveMine(patch) {
-  const { db, fsMod } = app.fb;
-  await fsMod.setDoc(fsMod.doc(db, "students", app.user.uid), { ...patch, updatedAt: fsMod.serverTimestamp() }, { merge: true });
-}
-
-/* 라우팅 */
-let mounted = "";
-function currentRoute() {
-  const h = location.hash.replace(/^#\/?/, "");
-  if (h.startsWith("s/")) return { name: "student", uid: decodeURIComponent(h.slice(2)) };
-  if (h === "me") return { name: "me" };
-  return { name: "home" };
-}
-function route() {
-  const r = currentRoute();
-  if (r.name === "me" && app.user) { location.replace("#/s/" + encodeURIComponent(app.user.uid)); return; }
-  renderNav(r);
-  const key = !configured ? "setup" : !app.authReady ? "wait" : !app.user ? "gate" : r.name === "student" ? "s:" + r.uid : "home";
-  if (key !== mounted) {
-    mounted = key;
-    if (key === "setup") mountSetup();
-    else if (key === "wait") $("view").innerHTML = `<p class="empty mono">불러오는 중</p>`;
-    else if (key === "gate") mountGate();
-    else if (key === "home") mountHome();
-    else mountStudent(r.uid);
-    window.scrollTo({ top: 0 });
-  }
-  paint();
-}
-function paint() {
-  if (mounted === "home") paintHome();
-  else if (mounted.startsWith("s:")) paintStudent(mounted.slice(2));
-}
-window.addEventListener("hashchange", route);
-
-/* 상단 메뉴 */
-function renderNav(r) {
-  if (!configured || !app.user) {
-    $("nav").innerHTML = configured && app.authReady ? `<button class="link mono" type="button" data-act="login">로그인</button>` : "";
-    return;
-  }
-  const mine = r.name === "student" && r.uid === app.user.uid;
-  $("nav").innerHTML = `
-    <a class="link" href="#/" ${r.name === "home" ? 'aria-current="page"' : ""}>전체</a>
-    <a class="link" href="#/me" ${mine ? 'aria-current="page"' : ""}>내 포트폴리오</a>
-    <button class="link mono hide-sm" type="button" data-act="logout">로그아웃</button>`;
-}
-document.addEventListener("click", e => {
-  const act = e.target.closest("[data-act]")?.dataset.act;
-  if (act === "login") login();
-  if (act === "logout") logout();
-  if (e.target.closest(".del")) onDeleteClick(e);
-});
-
-/* 공통 조각 */
-function introHtml(title, sub, side) {
-  return `<header class="intro"><h1>${title}<span class="sub">${sub}</span></h1>${side}</header>`;
-}
-function flowPlain() {
-  return STAGES.map((s, i) => `
-    <li><div class="cell">
-      <span class="idx mono"><span>${pad(i + 1)}</span></span>
-      <span class="name">${esc(s.name)}</span>
-      <span></span>
-    </div></li>`).join("");
-}
-
-/* 설정 전 화면 */
-function mountSetup() {
-  $("view").innerHTML = `
-    ${introHtml("온라인마케팅실전", "학습 포트폴리오", "")}
-    <ol class="flow">${flowPlain()}</ol>
-    <section class="notice">
-      <h2>Firebase 설정이 필요합니다</h2>
-      <p>firebase-config.js 파일에 Firebase 프로젝트 설정값을 입력하면 로그인과 자료 공유가 동작합니다. 설정 방법은 README를 참고하세요.</p>
-    </section>`;
-}
-
-/* 로그인 전 화면 */
-function mountGate() {
-  $("view").innerHTML = `
-    ${introHtml("온라인마케팅실전", "학습 포트폴리오", `<p class="lead">다섯 단계의 과정을 따라 각자 학습자료를 올리고, 수강생 모두의 진행 상황을 함께 봅니다.</p>`)}
-    <ol class="flow">${flowPlain()}</ol>
-    <section class="notice">
-      <h2>로그인하고 시작하세요</h2>
-      <div class="lines">
-        <p>구글 계정으로 로그인하면 내 자료를 등록하고 다른 수강생의 자료를 볼 수 있습니다.</p>
-        <p>카카오톡 등 앱 안의 브라우저에서는 로그인이 막힐 수 있으니 Chrome이나 Safari로 열어 주세요.</p>
-      </div>
-      <button class="btn" type="button" data-act="login">구글 계정으로 로그인</button>
-    </section>`;
-}
-
-/* 전체 화면 */
-function mountHome() {
-  $("view").innerHTML = `
-    ${introHtml("온라인마케팅실전", "수강생 학습 포트폴리오", `<p class="lead">단계별로 자료를 올린 수강생 비율과 각자의 진행 상황입니다. 이름을 누르면 해당 학생의 자료를 볼 수 있습니다.</p>`)}
-    <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
-    <div class="stats" id="stats"></div>
-    <main>
-      <div class="roster-head">
-        <h2>수강생</h2>
-        <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
-      </div>
-      <ol class="roster" id="roster"></ol>
-    </main>`;
-  $("q").addEventListener("input", paintRoster);
-}
-function sortedStudents() {
-  return [...app.students.entries()]
-    .filter(([, s]) => s.name)
-    .sort(([, a], [, b]) => String(a.sid || "").localeCompare(String(b.sid || "")) || String(a.name).localeCompare(String(b.name), "ko"));
-}
-function paintHome() {
-  const list = sortedStudents();
-  const n = list.length;
-  $("flow").innerHTML = STAGES.map((s, i) => {
-    const done = list.filter(([, st]) => itemsOf(st, s.id).length).length;
-    const pct = n ? Math.round(done / n * 100) : 0;
-    return `
-      <li><div class="cell">
-        <span class="idx mono"><span>${pad(i + 1)}</span></span>
-        <span class="name">${esc(s.name)}</span>
-        <span class="rate" aria-label="${n}명 중 ${done}명 제출">
-          <span class="track"><span style="width:${pct}%"></span></span>
-          <span class="label mono"><span>${done} / ${n}명</span><span>${pct}%</span></span>
-        </span>
-      </div></li>`;
-  }).join("");
-  const total = list.reduce((a, [, s]) => a + countsOf(s).reduce((x, y) => x + y, 0), 0);
-  const avg = n ? (list.reduce((a, [, s]) => a + countsOf(s).filter(Boolean).length, 0) / n) : 0;
-  $("stats").innerHTML = `
-    <div><b>${n}</b><span class="mono">참여 학생</span></div>
-    <div><b>${total}</b><span class="mono">누적 자료</span></div>
-    <div><b>${avg.toFixed(1)}<span class="mono"> / ${STAGES.length}</span></b><span class="mono">평균 진행 단계</span></div>`;
-  paintRoster();
-}
-function paintRoster() {
-  const el = $("roster");
-  if (!el) return;
-  if (!app.loaded) { el.innerHTML = `<li class="empty mono">불러오는 중</li>`; return; }
-  if (app.error) { el.innerHTML = `<li class="empty mono">${esc(app.error)}</li>`; return; }
-  const q = $("q").value.trim().toLowerCase();
-  const list = sortedStudents().filter(([, s]) => !q || [s.name, s.dept, s.sid].some(v => String(v || "").toLowerCase().includes(q)));
-  const head = `
-    <li class="r th mono" aria-hidden="true">
-      <span>No.</span><span>이름</span><span class="dp-col">학과</span><span>학번</span>
-      <span class="strip">${STAGES.map((_, i) => `<span class="sq">${pad(i + 1)}</span>`).join("")}</span>
-      <span class="sum">합계</span>
-    </li>`;
-  if (!list.length) { el.innerHTML = head + `<li class="empty mono">${q ? "검색 결과 없음" : "아직 등록한 학생이 없습니다"}</li>`; return; }
-  el.innerHTML = head + list.map(([uid, s], i) => {
-    const c = countsOf(s);
-    return `<li><a class="r" href="#/s/${encodeURIComponent(uid)}">
-      <span class="n mono">${pad(i + 1)}</span>
-      <span class="nm${app.user && uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span>
-      <span class="dp dp-col">${esc(s.dept || "")}</span>
-      <span class="sid mono">${esc(s.sid || "")}</span>
-      <span class="strip" aria-label="단계별 자료 ${c.join(", ")}개">${c.map(v => `<span class="sq${v ? "" : " none"}">${v || ""}</span>`).join("")}</span>
-      <span class="sum mono">${c.reduce((a, b) => a + b, 0)}</span>
-    </a></li>`;
-  }).join("");
-}
-
-/* 학생 화면 */
-function mountStudent(uid) {
-  const mine = uid === app.user.uid;
-  const side = mine ? `
-    <form class="profile" id="profile" autocomplete="off">
-      <label class="field"><span class="mono">이름</span><input name="name" maxlength="20" placeholder="이름" required></label>
-      <label class="field"><span class="mono">학과</span><input name="dept" maxlength="40" placeholder="학과"></label>
-      <label class="field"><span class="mono">학번</span><input name="sid" maxlength="20" inputmode="numeric" placeholder="학번"></label>
-      <button class="btn" type="submit">반영하기</button>
-      <p class="note mono" id="profile-note" role="status"></p>
-    </form>` : `<dl class="facts" id="facts"></dl>`;
-  $("view").innerHTML = `
-    <header class="intro">
-      <div><a class="back mono" href="#/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>전체 수강생</a><h1 id="headline"></h1></div>
-      ${side}
-    </header>
-    <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
-    <div class="stats" id="stats"></div>
-    <main>${STAGES.map((s, i) => `
-      <section class="stage" id="stage-${s.id}">
-        <div class="stage-info">
-          <div class="stage-num">${pad(i + 1)}</div>
-          <h2>${esc(s.name)}</h2>
-          <p>${esc(s.desc)}</p>
-          <div class="topics mono">${s.topics.map(t => `<span>${esc(t)}</span>`).join("")}</div>
-        </div>
-        <div>
-          <div id="list-${s.id}"></div>
-          ${mine ? addFormHtml(s) : ""}
-        </div>
-      </section>`).join("")}
-    </main>`;
-  if (mine) {
-    const f = $("profile");
-    f.addEventListener("input", () => { f.dataset.dirty = "1"; });
-    f.addEventListener("submit", onProfileSubmit);
-    $("view").querySelectorAll("form.add").forEach(form => form.addEventListener("submit", onAddSubmit));
-  }
-  $("flow").addEventListener("click", e => {
-    const b = e.target.closest("[data-go]");
-    if (b) $("stage-" + b.dataset.go).scrollIntoView({ behavior: "smooth" });
-  });
-}
-function addFormHtml(s) {
-  return `
-    <form class="add" data-stage="${s.id}" autocomplete="off">
-      <label class="field"><span class="mono">종류</span>
-        <select name="type">${TYPES.map(t => `<option>${t}</option>`).join("")}</select>
-      </label>
-      <label class="field f-title"><span class="mono">제목</span><input name="title" maxlength="80" placeholder="자료 제목" required></label>
-      <label class="field"><span class="mono">날짜</span><input name="date" type="date" value="${today()}"></label>
-      <label class="field wide"><span class="mono">링크</span><input name="url" type="text" inputmode="url" placeholder="https://" maxlength="500"></label>
-      <label class="field wide"><span class="mono">설명</span><input name="desc" maxlength="120" placeholder="한 줄 설명 (선택)"></label>
-      <div class="actions">
-        <button class="btn" type="submit">반영하기</button>
-        <p class="note mono" role="status"></p>
-      </div>
-    </form>`;
-}
-function paintStudent(uid) {
-  const mine = uid === app.user.uid;
-  const s = app.students.get(uid);
-  if (!s && !mine) {
-    $("headline").innerHTML = app.loaded ? "학생을 찾을 수 없습니다" : "불러오는 중";
-    return;
-  }
-  const data = s || {};
-  const name = data.name || "";
-  $("headline").innerHTML = `${esc(name || "이름")}<span class="sub">학습 포트폴리오</span>`;
-  document.title = name ? `${name} | 온라인마케팅실전 학습 포트폴리오` : "온라인마케팅실전 학습 포트폴리오";
-
-  if (mine) {
-    const f = $("profile");
-    if (!f.dataset.dirty && document.activeElement?.form !== f) {
-      f.elements.name.value = data.name || "";
-      f.elements.dept.value = data.dept || "";
-      f.elements.sid.value = data.sid || "";
-    }
-  } else {
-    $("facts").innerHTML = [["학과", data.dept], ["학번", data.sid]]
-      .map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
-  }
-
-  const c = countsOf(data);
-  $("flow").innerHTML = STAGES.map((st, i) => `
-    <li>
-      <button class="cell" type="button" data-go="${st.id}">
-        <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span></span>
-        <span class="name">${esc(st.name)}</span>
-        <span class="ticks" aria-label="자료 ${c[i]}개">${c[i] ? "<i></i>".repeat(c[i]) : `<i class="none"></i>`}<span class="mono">${c[i]}</span></span>
-      </button>
-    </li>`).join("");
-  const next = c.findIndex(v => !v);
-  $("stats").innerHTML = `
-    <div><b>${c.filter(Boolean).length}<span class="mono"> / ${STAGES.length}</span></b><span class="mono">진행 단계</span></div>
-    <div><b>${c.reduce((a, b) => a + b, 0)}</b><span class="mono">누적 자료</span></div>
-    <div><b class="${next >= 0 ? "signal" : ""}">${next >= 0 ? pad(next + 1) : "완료"}</b><span class="mono">${next >= 0 ? "다음 단계" : "전체 과정"}</span></div>`;
-
-  STAGES.forEach(st => { $("list-" + st.id).innerHTML = listHtml(st, itemsOf(data, st.id), mine); });
-}
-function listHtml(st, items, mine) {
-  if (!items.length) return `<p class="empty mono">등록된 자료 없음</p>`;
-  return `<ol class="list">${items.map((m, j) => {
-    const url = safeUrl(m.url);
-    const title = url
-      ? `<a class="title" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)} <span class="go" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg></span></a>`
-      : `<span class="title">${esc(m.title)}</span>`;
-    return `<li class="row">
-      <span class="n mono">${pad(j + 1)}</span>
-      <span class="type mono">${esc(m.type)}</span>
-      <span class="body">${title}${m.desc ? `<span class="desc">${esc(m.desc)}</span>` : ""}</span>
-      <span class="end">
-        ${m.date ? `<span class="date mono">${esc(m.date)}</span>` : ""}
-        ${mine ? `<button class="del mono" type="button" data-stage="${st.id}" data-index="${j}">삭제</button>` : ""}
-      </span>
-    </li>`;
-  }).join("")}</ol>`;
-}
-
-/* 내 자료 입력 */
-async function withBusy(form, fn) {
-  const btn = form.querySelector(".btn");
-  btn.disabled = true;
-  try { await fn(); } finally { btn.disabled = false; }
-}
-function onProfileSubmit(e) {
-  e.preventDefault();
-  const f = e.target;
-  const note = $("profile-note");
-  const patch = {
-    name: f.elements.name.value.trim(),
-    dept: f.elements.dept.value.trim(),
-    sid: f.elements.sid.value.trim()
-  };
-  if (!patch.name) { flash(note, false, "이름을 입력하세요"); return; }
-  withBusy(f, async () => {
-    try {
-      await saveMine(patch);
-      delete f.dataset.dirty;
-      flash(note, true, "반영되었습니다");
-    } catch { flash(note, false, "저장하지 못했습니다"); }
-  });
-}
-function onAddSubmit(e) {
-  e.preventDefault();
-  const f = e.target;
-  const note = f.querySelector(".note");
-  const stageId = f.dataset.stage;
-  const mine = app.students.get(app.user.uid);
-  if (!mine?.name) { flash(note, false, "먼저 위에서 이름을 반영하세요"); return; }
-  const title = f.elements.title.value.trim();
-  if (!title) { flash(note, false, "제목을 입력하세요"); return; }
-  const rawUrl = f.elements.url.value.trim();
-  const url = safeUrl(rawUrl);
-  if (rawUrl && !url) { flash(note, false, "링크 주소를 확인하세요"); return; }
-  const items = itemsOf(mine, stageId);
-  if (items.length >= MAX_ITEMS) { flash(note, false, `한 단계에 ${MAX_ITEMS}개까지 등록할 수 있습니다`); return; }
-  const item = { type: f.elements.type.value, title, url, date: f.elements.date.value, desc: f.elements.desc.value.trim() };
-  withBusy(f, async () => {
-    try {
-      await saveMine({ materials: { [stageId]: [...items, item] } });
-      f.elements.title.value = ""; f.elements.url.value = ""; f.elements.desc.value = "";
-      flash(note, true, "반영되었습니다");
-    } catch { flash(note, false, "저장하지 못했습니다"); }
-  });
-}
-async function onDeleteClick(e) {
-  const b = e.target.closest(".del");
-  if (!b) return;
-  const items = itemsOf(app.students.get(app.user.uid), b.dataset.stage);
-  const idx = +b.dataset.index;
-  if (!items[idx] || !confirm(`"${items[idx].title}" 자료를 삭제할까요?`)) return;
-  try {
-    await saveMine({ materials: { [b.dataset.stage]: items.filter((_, i) => i !== idx) } });
-  } catch { alert("삭제하지 못했습니다"); }
-}
-
-/* 시작 */
-route();
-if (configured) {
-  initFirebase().catch(() => {
-    $("view").innerHTML = `<section class="notice"><h2>연결하지 못했습니다</h2><p>네트워크 상태나 firebase-config.js 설정값을 확인하세요.</p></section>`;
-    mounted = "error";
-  });
-}
-</script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
