@@ -92,7 +92,7 @@ export const STAGES = [
         steps: [
           "카드 ①과 같은 대화창에 프롬프트를 붙여 넣습니다.",
           "틀린 칸은 내 사업 사정에 맞게 직접 고칩니다.",
-          "저장합니다. 실습 ① 파일(학번_이름_실습1)은 링크로 함께 등록합니다."
+          "저장합니다."
         ],
         prompt: {
           body: "앞에서 작성한 3C와 PEST 결과만 근거로 삼아 아래를 수행하라.\n\n1) SWOT을 작성하라. 각 항목 4개 이내, 한 줄 20자 내외.\n2) SO, ST, WO, WT 교차전략을 각각 1개씩 도출하라.\n   단, 이번 학기에 내가 혼자 실행할 수 있는 수준으로 쓰라.\n3) 네가 작성한 SWOT 중 근거가 가장 약한 항목 2개를 지목하고\n   왜 약한지 설명하라.\n\n조건\n· 강점과 기회를 혼동하지 마라. 내가 통제할 수 있으면 S 또는 W다.\n· 모든 항목 앞에 근거가 된 3C · PEST 항목 번호를 표시하라."
@@ -105,8 +105,7 @@ export const STAGES = [
           { k: "so", label: "SO 전략", type: "text" },
           { k: "st", label: "ST 전략", type: "text" },
           { k: "wo", label: "WO 전략", type: "text" },
-          { k: "wt", label: "WT 전략", type: "text" },
-          { k: "file", label: "실습 ① 파일 링크 (선택)", type: "url", ph: "https://" }
+          { k: "wt", label: "WT 전략", type: "text" }
         ]
       },
       {
@@ -122,7 +121,7 @@ export const STAGES = [
         steps: [
           "같은 대화창에 프롬프트를 붙여 넣습니다.",
           "내 지역 · 업종에 없는 채널은 지우고 빠진 채널은 추가합니다.",
-          "홈페이지 담당 단계를 고르고 저장합니다. 실습 ② 파일(학번_이름_실습2)은 링크로 등록합니다."
+          "홈페이지 담당 단계를 고르고 저장합니다."
         ],
         prompt: {
           body: "앞에서 작성한 3C와 SWOT을 근거로, 내 고객의 구매 여정을 6단계로 작성하라.\n\n단계 : 인지 - 비교탐색 - 경험 - 구매 - 공유 - 사후관리\n\n각 단계마다 아래 네 가지를 표의 열로 채워라.\n① 고객이 하는 행동   ② 그 행동이 일어나는 채널\n③ 고객이 느끼는 불안   ④ 내가 줘야 할 정보나 혜택\n\n조건\n· 채널은 \"소셜미디어\"처럼 뭉뚱그리지 말고 네이버 플레이스,\n  인스타그램 릴스처럼 실제 서비스명으로 적어라.\n· 마지막 줄에 \"홈페이지가 담당해야 할 단계\"를 하나 고르고 이유를 쓰라."
@@ -138,8 +137,7 @@ export const STAGES = [
             ]
           },
           { k: "home", label: "홈페이지가 담당할 단계", type: "select", options: JOURNEY },
-          { k: "homeWhy", label: "고른 이유", type: "text" },
-          { k: "file", label: "실습 ② 파일 링크 (선택)", type: "url", ph: "https://" }
+          { k: "homeWhy", label: "고른 이유", type: "text" }
         ]
       },
       {
@@ -299,8 +297,7 @@ export const STAGES = [
           { k: "target", label: "타깃", type: "text", ph: "수성구에서 일하는 30~40대 직장인" },
           { k: "value", label: "경쟁사와 다른 가치", type: "text", ph: "혼자 두 시간을 눈치 없이 앉을 수 있는 자리" },
           { k: "channel", label: "채널", type: "text", ph: "네이버 플레이스와 인스타그램 릴스" },
-          { k: "stage", label: "여정 단계", type: "select", options: JOURNEY },
-          { k: "file", label: "통합 기획서 파일 링크 (선택)", type: "url", ph: "https://" }
+          { k: "stage", label: "여정 단계", type: "select", options: JOURNEY }
         ]
       }
     ]
@@ -311,4 +308,3 @@ export const STAGES = [
   { id: "analysis", name: "성과분석", chapter: "", desc: "3개월 목표와 비교해 성과를 평가합니다.", produce: [], points: [], tasks: [] }
 ];
 
-export const TYPES = ["슬라이드", "문서", "실습", "영상", "웹페이지", "기타"];
