@@ -15,7 +15,7 @@
     --ink-2: #55534e;
     --ink-3: #8c8a84;
     --rule: #d9d6cf;
-    --signal: #ff4f1a;
+    --signal: #144194;
     --gutter: clamp(16px, 4vw, 56px);
     --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -27,7 +27,7 @@
       --ink-2: #a9a69e;
       --ink-3: #6e6c66;
       --rule: #2b2a27;
-      --signal: #ff6a3d;
+      --signal: #7fa3ee;
     }
   }
   * { box-sizing: border-box; }
@@ -52,8 +52,12 @@
   /* 상단 바 */
   .topbar {
     display: flex; justify-content: space-between; align-items: center; gap: 16px;
-    min-height: 60px; border-bottom: 1px solid var(--ink); color: var(--ink-2);
+    min-height: 72px; border-bottom: 1px solid var(--ink); color: var(--ink-2);
   }
+  .brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
+  .brand img { display: block; height: 32px; width: auto; }
+  .brand .course { padding-left: 16px; border-left: 1px solid var(--rule); white-space: nowrap; }
+  .brand:hover .course { color: var(--signal); }
   .topbar nav { display: flex; gap: 20px; align-items: center; }
   .link { padding: 8px 0; background: none; border: 0; cursor: pointer; }
   .link:hover, .link[aria-current="page"] { color: var(--signal); }
@@ -267,6 +271,7 @@
     .roster .strip { display: flex; gap: 4px; grid-column: 2 / -1; }
     .roster .sum { display: none; }
     .topbar .hide-sm { display: none; }
+    .brand img { height: 26px; }
   }
 </style>
 </head>
@@ -274,7 +279,13 @@
 
 <div class="page">
   <div class="topbar mono">
-    <a href="#/" class="link">온라인마케팅실전 2026</a>
+    <a href="#/" class="brand">
+      <picture>
+        <source srcset="assets/kmu-logo-dark.png" media="(prefers-color-scheme: dark)">
+        <img src="assets/kmu-logo.png" alt="계명대학교" width="383" height="96">
+      </picture>
+      <span class="course hide-sm">온라인마케팅실전 2026</span>
+    </a>
     <nav id="nav"></nav>
   </div>
   <div id="view"></div>
