@@ -3,161 +3,212 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>온라인마케팅실전</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css">
+<title>온라인마케팅실전 학습 포트폴리오</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root {
-    --bg: #f7f7f5;
-    --surface: #ffffff;
-    --text: #1c1c1e;
-    --muted: #6b6b70;
-    --line: #e4e4e0;
-    --accent: #2f5bea;
-    --accent-soft: #e8eeff;
-    --s1: #2f5bea;
-    --s2: #7a4fd6;
-    --s3: #0e9f8a;
-    --s4: #e0781b;
-    --s5: #d6336c;
+    --paper: #f3f1ec;
+    --ink: #121212;
+    --ink-2: #55534e;
+    --ink-3: #8c8a84;
+    --rule: #d9d6cf;
+    --signal: #ff4f1a;
+    --gutter: clamp(16px, 4vw, 56px);
+    --sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #141416;
-      --surface: #1d1d20;
-      --text: #ececee;
-      --muted: #9a9aa2;
-      --line: #2e2e33;
-      --accent: #7c9bff;
-      --accent-soft: #232a45;
-      --s1: #7c9bff;
-      --s2: #a98bf0;
-      --s3: #3cc7b1;
-      --s4: #f2a05a;
-      --s5: #f0719b;
+      --paper: #111110;
+      --ink: #eeece6;
+      --ink-2: #a9a69e;
+      --ink-3: #6e6c66;
+      --rule: #2b2a27;
+      --signal: #ff6a3d;
     }
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-    line-height: 1.6;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
     word-break: keep-all;
+    overflow-wrap: anywhere;
+    -webkit-font-smoothing: antialiased;
   }
-  a { color: inherit; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: var(--mono); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+  .page { max-width: 1320px; margin: 0 auto; padding: 0 var(--gutter); }
 
-  header.hero { padding: 56px 0 32px; }
-  .eyebrow { font-size: 14px; color: var(--muted); letter-spacing: .02em; margin: 0 0 8px; }
-  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.25; margin: 0 0 12px; font-weight: 800; }
-  .lead { color: var(--muted); margin: 0; max-width: 640px; }
+  /* 상단 바 */
+  .topbar {
+    display: flex; justify-content: space-between; gap: 16px;
+    padding: 18px 0; border-bottom: 1px solid var(--ink);
+    color: var(--ink-2);
+  }
+
+  /* 소개 */
+  .intro {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px 48px;
+    align-items: end; padding: clamp(40px, 8vw, 104px) 0 clamp(32px, 5vw, 56px);
+  }
+  .intro h1 {
+    margin: 0; font-weight: 700; letter-spacing: -0.035em;
+    font-size: clamp(40px, 8.4vw, 112px); line-height: .98;
+  }
+  .intro h1 .who { display: block; color: var(--ink-3); font-weight: 400; }
+  .intro h1 .who.filled { color: var(--ink); font-weight: 700; }
+  .profile { margin: 0; display: grid; grid-template-columns: auto auto; gap: 10px 28px; min-width: 260px; }
+  .profile dt { color: var(--ink-3); }
+  .profile dd { margin: 0; font-weight: 600; text-align: right; }
+  .profile dd.blank { color: var(--ink-3); font-weight: 400; }
 
   /* 전체 흐름 */
   .flow {
-    list-style: none; margin: 32px 0 0; padding: 0;
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
-    counter-reset: step;
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
   }
-  .flow li { position: relative; }
+  .flow li + li { border-left: 1px solid var(--rule); }
   .flow a {
-    display: flex; flex-direction: column; gap: 6px; height: 100%;
-    padding: 18px 16px; border-radius: 14px; text-decoration: none;
-    background: var(--surface); border: 1px solid var(--line);
-    transition: transform .15s, border-color .15s;
+    display: grid; grid-template-rows: auto 1fr auto; gap: 20px;
+    height: 100%; padding: 20px 18px 22px;
+    transition: background-color .2s;
   }
-  .flow a:hover { transform: translateY(-2px); border-color: var(--c); }
-  .flow .num { font-size: 13px; font-weight: 700; color: var(--c); }
-  .flow .name { font-size: 17px; font-weight: 700; }
-  .flow .count { font-size: 13px; color: var(--muted); margin-top: auto; }
-  .flow .bar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
-  .flow .bar span { display: block; height: 100%; background: var(--c); }
-  .flow li:not(:last-child)::after {
-    content: ""; position: absolute; top: 50%; right: -10px; width: 8px; height: 8px;
-    border-top: 2px solid var(--muted); border-right: 2px solid var(--muted);
-    transform: translateY(-50%) rotate(45deg); opacity: .6;
-  }
+  .flow a:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+  .flow .idx { display: flex; justify-content: space-between; color: var(--ink-3); }
+  .flow .idx .arrow { transition: transform .2s, color .2s; }
+  .flow a:hover .arrow { transform: translate(2px, -2px); color: var(--signal); }
+  .flow .name { font-size: clamp(18px, 1.7vw, 22px); font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
+  .ticks { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; min-height: 10px; }
+  .ticks i { width: 10px; height: 10px; background: var(--ink); }
+  .ticks i.none { background: transparent; box-shadow: inset 0 0 0 1px var(--ink-3); }
+  .ticks span { margin-left: 8px; color: var(--ink-3); }
 
-  .summary {
-    display: flex; flex-wrap: wrap; gap: 24px; margin: 24px 0 0; padding: 16px 20px;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-    font-size: 14px; color: var(--muted);
+  .stats {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-bottom: 1px solid var(--rule);
   }
-  .summary b { display: block; font-size: 22px; color: var(--text); }
+  .stats div { padding: 18px 18px 20px; }
+  .stats div + div { border-left: 1px solid var(--rule); }
+  .stats b { display: block; font-size: clamp(28px, 3.6vw, 44px); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stats span { color: var(--ink-3); }
+  .stats .signal { color: var(--signal); }
 
-  /* 단계별 섹션 */
-  main { padding: 24px 0 72px; }
-  section.stage { padding: 40px 0 8px; scroll-margin-top: 16px; }
-  .stage-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
-  .badge {
-    flex: none; width: 44px; height: 44px; border-radius: 12px;
-    display: grid; place-items: center; font-weight: 800; color: #fff; background: var(--c);
+  /* 단계 */
+  main { padding-bottom: clamp(48px, 8vw, 120px); }
+  .stage {
+    display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px 48px;
+    padding: clamp(40px, 6vw, 72px) 0; border-bottom: 1px solid var(--rule);
+    scroll-margin-top: 8px;
   }
-  .stage-head h2 { margin: 0; font-size: 24px; }
-  .stage-head p { margin: 4px 0 0; color: var(--muted); }
-  .topics { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
-  .topics li { font-size: 13px; padding: 3px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
-
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-  .card {
-    display: flex; flex-direction: column; gap: 6px; padding: 18px;
-    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c);
-    border-radius: 12px; text-decoration: none;
+  .stage-info { position: sticky; top: 24px; align-self: start; }
+  .stage-num {
+    font-family: var(--mono); font-weight: 500; line-height: .9; letter-spacing: -0.04em;
+    font-size: clamp(56px, 8vw, 104px); color: var(--ink-3);
   }
-  a.card:hover { border-color: var(--c); }
-  .card .meta { display: flex; gap: 8px; font-size: 12px; color: var(--muted); }
-  .card .type { font-weight: 700; color: var(--c); }
-  .card h3 { margin: 0; font-size: 16px; }
-  .card p { margin: 0; font-size: 14px; color: var(--muted); }
-  .empty {
-    padding: 24px; text-align: center; color: var(--muted); font-size: 14px;
-    border: 1px dashed var(--line); border-radius: 12px;
+  .stage h2 { margin: 16px 0 12px; font-size: clamp(26px, 3vw, 36px); letter-spacing: -0.03em; line-height: 1.2; }
+  .stage-info p { margin: 0 0 20px; color: var(--ink-2); max-width: 44ch; }
+  .topics { color: var(--ink-3); line-height: 2; }
+  .topics span:not(:last-child)::after { content: "/"; margin: 0 10px; color: var(--rule); }
+
+  .list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+  .row {
+    display: grid; grid-template-columns: 36px 88px minmax(0, 1fr) auto; gap: 16px; align-items: baseline;
+    padding: 18px 0; border-bottom: 1px solid var(--rule);
   }
+  a.row:hover .title { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  a.row:hover .go { color: var(--signal); transform: translate(2px, -2px); }
+  .row .n, .row .type, .row .date { color: var(--ink-3); }
+  .row .title { font-weight: 600; font-size: 17px; letter-spacing: -0.01em; }
+  .row .desc { display: block; margin-top: 4px; color: var(--ink-2); font-size: 14px; font-weight: 400; }
+  .row .end { display: flex; gap: 14px; align-items: baseline; white-space: nowrap; }
+  .row .go { transition: transform .2s, color .2s; }
+  .empty { padding: 28px 0; color: var(--ink-3); border-bottom: 1px solid var(--rule); }
 
-  footer { padding: 24px 0 40px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+  footer { display: flex; justify-content: space-between; gap: 16px; padding: 20px 0 32px; color: var(--ink-3); }
 
-  @media (max-width: 760px) {
-    .flow { grid-template-columns: 1fr; gap: 8px; }
-    .flow a { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
-    .flow .count { margin-top: 0; margin-left: auto; }
-    .flow .bar { flex-basis: 100%; }
-    .flow li:not(:last-child)::after {
-      top: auto; bottom: -8px; right: 50%; transform: translateX(50%) rotate(135deg);
-    }
+  :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+  /* 태블릿 */
+  @media (max-width: 1024px) {
+    .flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .flow li:nth-child(4) { border-left: 0; }
+    .flow li:nth-child(n+4) { border-top: 1px solid var(--rule); }
+    .stage { grid-template-columns: minmax(0, 1fr); }
+    .stage-info { position: static; }
+  }
+  /* 모바일 */
+  @media (max-width: 640px) {
+    .intro { grid-template-columns: minmax(0, 1fr); align-items: start; }
+    .profile { min-width: 0; border-top: 1px solid var(--rule); padding-top: 16px; }
+    .flow { grid-template-columns: minmax(0, 1fr); }
+    .flow li + li { border-left: 0; border-top: 1px solid var(--rule); }
+    .flow a { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-rows: auto; align-items: center; gap: 12px; padding: 16px 0; }
+    .flow .idx .arrow { display: none; }
+    .flow .name { font-size: 17px; }
+    .ticks { justify-content: flex-end; max-width: 120px; }
+    .stats div { padding: 14px 12px 16px 0; }
+    .stats div + div { padding-left: 12px; }
+    .row { grid-template-columns: 28px minmax(0, 1fr); gap: 4px 12px; }
+    .row .type { grid-column: 2; order: -1; }
+    .row .n { grid-row: 1 / span 3; }
+    .row .end { grid-column: 2; }
+    .topbar .hide-sm { display: none; }
   }
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="wrap">
-    <p class="eyebrow">2026 온라인마케팅실전</p>
-    <h1>내 제품을 직접 기획하고, 만들고, 알리고, 측정합니다</h1>
-    <p class="lead">강의 계획의 다섯 단계를 순서대로 따라가며 학습자료를 확인하세요. 각 단계를 누르면 해당 자료로 이동합니다.</p>
-
-    <ol class="flow" id="flow"></ol>
-    <div class="summary" id="summary"></div>
+<div class="page">
+  <div class="topbar mono">
+    <span>온라인마케팅실전 2026</span>
+    <span class="hide-sm">Learning Portfolio</span>
   </div>
-</header>
 
-<main>
-  <div class="wrap" id="stages"></div>
-</main>
+  <header class="intro">
+    <h1 id="headline"></h1>
+    <dl class="profile" id="profile"></dl>
+  </header>
 
-<footer>
-  <div class="wrap">온라인마케팅실전 2026</div>
-</footer>
+  <nav aria-label="과정 흐름">
+    <ol class="flow" id="flow"></ol>
+  </nav>
+  <div class="stats" id="stats"></div>
+
+  <main id="stages"></main>
+
+  <footer class="mono">
+    <span>온라인마케팅실전</span>
+    <a href="#top" onclick="window.scrollTo({top:0});return false;">맨 위로 ↑</a>
+  </footer>
+</div>
 
 <script>
 /*
-  학습자료 추가 방법
-  1. 아래 STAGES에서 해당 단계의 materials 배열에 항목을 추가합니다.
-  2. 파일은 materials/ 폴더의 단계별 하위 폴더에 올리고 url에 경로를 적습니다.
-     외부 링크(구글 슬라이드, 유튜브 등)는 전체 주소를 적으면 됩니다.
+  1. 내 정보
+     아래 PROFILE에 이름, 학과, 학번을 입력합니다.
 
-  { title: "자료 제목", type: "슬라이드", date: "2026-09-01", url: "materials/01-product/파일.pdf", desc: "한 줄 설명" }
+  2. 학습자료 추가
+     파일은 materials/ 폴더의 단계별 하위 폴더에 올리고,
+     STAGES에서 해당 단계의 materials 배열에 한 줄을 추가합니다.
+     외부 링크(구글 슬라이드, 유튜브 등)는 url에 전체 주소를 적습니다.
+
+     { title: "자료 제목", type: "슬라이드", date: "2026-09-01", url: "materials/01-product/파일.pdf", desc: "한 줄 설명" }
 */
+const PROFILE = {
+  name: "",   // 이름
+  dept: "",   // 학과
+  id: ""      // 학번
+};
+
 const STAGES = [
   {
     id: "product",
@@ -196,55 +247,62 @@ const STAGES = [
   }
 ];
 
-const COLORS = ["--s1", "--s2", "--s3", "--s4", "--s5"];
-
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
+const pad = n => String(n).padStart(2, "0");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = id => document.getElementById(id);
 
 function render() {
-  const total = STAGES.reduce((n, s) => n + s.materials.length, 0);
-  const max = Math.max(1, ...STAGES.map(s => s.materials.length));
+  const name = PROFILE.name.trim();
+  $("headline").innerHTML = `<span class="who${name ? " filled" : ""}">${esc(name || "이름")}</span>학습 포트폴리오`;
+  if (name) document.title = `${name} | 온라인마케팅실전 학습 포트폴리오`;
 
-  document.getElementById("flow").innerHTML = STAGES.map((s, i) => `
-    <li style="--c: var(${COLORS[i]})">
-      <a href="#${s.id}">
-        <span class="num">STEP ${i + 1}</span>
-        <span class="name">${esc(s.name)}</span>
-        <span class="count">자료 ${s.materials.length}개</span>
-        <span class="bar"><span style="width:${(s.materials.length / max) * 100}%"></span></span>
-      </a>
-    </li>`).join("");
+  $("profile").innerHTML = [["이름", PROFILE.name], ["학과", PROFILE.dept], ["학번", PROFILE.id]]
+    .map(([k, v]) => `<dt class="mono">${k}</dt><dd class="${v.trim() ? "" : "blank"}">${esc(v.trim() || "입력 전")}</dd>`)
+    .join("");
 
-  const done = STAGES.filter(s => s.materials.length > 0).length;
-  document.getElementById("summary").innerHTML = `
-    <div><b>${STAGES.length}단계</b>전체 과정</div>
-    <div><b>${done} / ${STAGES.length}</b>자료가 올라온 단계</div>
-    <div><b>${total}개</b>누적 학습자료</div>`;
+  $("flow").innerHTML = STAGES.map((s, i) => {
+    const n = s.materials.length;
+    const ticks = n ? Array.from({ length: n }, () => "<i></i>").join("") : `<i class="none"></i>`;
+    return `
+      <li>
+        <a href="#${s.id}">
+          <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow" aria-hidden="true">↘</span></span>
+          <span class="name">${esc(s.name)}</span>
+          <span class="ticks" aria-label="자료 ${n}개">${ticks}<span class="mono">${n}</span></span>
+        </a>
+      </li>`;
+  }).join("");
 
-  document.getElementById("stages").innerHTML = STAGES.map((s, i) => {
-    const cards = s.materials.length
-      ? `<div class="cards">${s.materials.map(m => {
+  const total = STAGES.reduce((a, s) => a + s.materials.length, 0);
+  const done = STAGES.filter(s => s.materials.length).length;
+  const next = STAGES.find(s => !s.materials.length);
+  $("stats").innerHTML = `
+    <div><b>${done}<span class="mono"> / ${STAGES.length}</span></b><span class="mono">진행 단계</span></div>
+    <div><b>${total}</b><span class="mono">누적 자료</span></div>
+    <div><b class="${next ? "signal" : ""}">${next ? pad(STAGES.indexOf(next) + 1) : "완료"}</b><span class="mono">${next ? "다음 단계" : "전체 과정"}</span></div>`;
+
+  $("stages").innerHTML = STAGES.map((s, i) => {
+    const rows = s.materials.length
+      ? `<ol class="list">${s.materials.map((m, j) => {
           const tag = m.url ? "a" : "div";
           const href = m.url ? ` href="${esc(m.url)}" target="_blank" rel="noopener"` : "";
-          return `<${tag} class="card"${href}>
-            <div class="meta"><span class="type">${esc(m.type || "자료")}</span>${m.date ? `<span>${esc(m.date)}</span>` : ""}</div>
-            <h3>${esc(m.title)}</h3>
-            ${m.desc ? `<p>${esc(m.desc)}</p>` : ""}
-          </${tag}>`;
-        }).join("")}</div>`
-      : `<div class="empty">아직 등록된 자료가 없습니다.</div>`;
+          return `<li><${tag} class="row"${href}>
+            <span class="n mono">${pad(j + 1)}</span>
+            <span class="type mono">${esc(m.type || "자료")}</span>
+            <span class="title">${esc(m.title)}${m.desc ? `<span class="desc">${esc(m.desc)}</span>` : ""}</span>
+            <span class="end">${m.date ? `<span class="date mono">${esc(m.date)}</span>` : ""}${m.url ? `<span class="go" aria-hidden="true">↗</span>` : ""}</span>
+          </${tag}></li>`;
+        }).join("")}</ol>`
+      : `<div class="list"><p class="empty mono">등록된 자료 없음</p></div>`;
     return `
-      <section class="stage" id="${s.id}" style="--c: var(${COLORS[i]})">
-        <div class="stage-head">
-          <div class="badge">${i + 1}</div>
-          <div>
-            <h2>${esc(s.name)}</h2>
-            <p>${esc(s.desc)}</p>
-            <ul class="topics">${s.topics.map(t => `<li>${esc(t)}</li>`).join("")}</ul>
-          </div>
+      <section class="stage" id="${s.id}">
+        <div class="stage-info">
+          <div class="stage-num">${pad(i + 1)}</div>
+          <h2>${esc(s.name)}</h2>
+          <p>${esc(s.desc)}</p>
+          <div class="topics mono">${s.topics.map(t => `<span>${esc(t)}</span>`).join("")}</div>
         </div>
-        ${cards}
+        ${rows}
       </section>`;
   }).join("");
 }
