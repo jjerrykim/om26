@@ -118,8 +118,8 @@
   .flow button.cell { cursor: pointer; }
   .flow button.cell:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
   .flow .idx { display: flex; justify-content: space-between; color: var(--ink-3); }
-  .flow .idx .arrow { transition: transform .2s, color .2s; }
-  .flow button.cell:hover .arrow { transform: translate(2px, 2px); color: var(--signal); }
+  .flow .idx .arrow { display: inline-flex; transition: transform .2s, color .2s; }
+  .flow button.cell:hover .arrow { transform: translateY(2px); color: var(--signal); }
   .flow .name { font-size: clamp(18px, 1.7vw, 22px); font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
   .ticks { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; min-height: 10px; }
   .ticks i { width: 10px; height: 10px; background: var(--ink); }
@@ -223,6 +223,15 @@
 
   footer { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 0 32px; color: var(--ink-3); border-top: 1px solid var(--rule); }
 
+  .ic { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.125em; }
+  .to-top {
+    display: grid; place-items: center; width: 40px; height: 40px; padding: 0; cursor: pointer;
+    color: var(--ink-2); background: none; border: 1px solid var(--rule); border-radius: 0;
+    transition: color .2s, border-color .2s;
+  }
+  .to-top .ic { width: 18px; height: 18px; }
+  .to-top:hover { color: var(--signal); border-color: var(--signal); }
+  .back { display: inline-flex; align-items: center; gap: 6px; }
   :focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 
   /* 태블릿 */
@@ -282,7 +291,7 @@
   <div id="view"></div>
   <footer class="mono">
     <span>온라인마케팅실전</span>
-    <button class="link mono" type="button" onclick="window.scrollTo({ top: 0 })">맨 위로 ↑</button>
+    <button class="to-top" type="button" aria-label="맨 위로" title="맨 위로" onclick="window.scrollTo({ top: 0 })"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
   </footer>
 </div>
 
@@ -570,7 +579,7 @@ function mountStudent(uid) {
     </form>` : `<dl class="facts" id="facts"></dl>`;
   $("view").innerHTML = `
     <header class="intro">
-      <div><a class="back mono" href="#/">← 전체 수강생</a><h1 id="headline"></h1></div>
+      <div><a class="back mono" href="#/"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>전체 수강생</a><h1 id="headline"></h1></div>
       ${side}
     </header>
     <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
@@ -644,7 +653,7 @@ function paintStudent(uid) {
   $("flow").innerHTML = STAGES.map((st, i) => `
     <li>
       <button class="cell" type="button" data-go="${st.id}">
-        <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow" aria-hidden="true">↓</span></span>
+        <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span></span>
         <span class="name">${esc(st.name)}</span>
         <span class="ticks" aria-label="자료 ${c[i]}개">${c[i] ? "<i></i>".repeat(c[i]) : `<i class="none"></i>`}<span class="mono">${c[i]}</span></span>
       </button>
@@ -662,7 +671,7 @@ function listHtml(st, items, mine) {
   return `<ol class="list">${items.map((m, j) => {
     const url = safeUrl(m.url);
     const title = url
-      ? `<a class="title" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)} <span class="go" aria-hidden="true">↗</span></a>`
+      ? `<a class="title" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)} <span class="go" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M8 7h9v9"/></svg></span></a>`
       : `<span class="title">${esc(m.title)}</span>`;
     return `<li class="row">
       <span class="n mono">${pad(j + 1)}</span>
