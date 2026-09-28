@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 학생 한 명당 문서 하나 (문서 ID = 로그인한 구글 계정 uid)
+    match /students/{uid} {
+      // 로그인한 사람은 모두 열람
+      allow read: if request.auth != null;
+
+      // 본인 문서만 작성, 수정, 삭제
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && validStudent(request.resource.data);
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    function validStudent(d) {
+      return d.keys().hasOnly(['name', 'dept', 'sid', 'materials', 'updatedAt'])
+        && d.updatedAt == request.time
+        && (!('name' in d) || (d.name is string && d.name.size() <= 20))
+        && (!('dept' in d) || (d.dept is string && d.dept.size() <= 40))
+        && (!('sid' in d) || (d.sid is string && d.sid.size() <= 20))
+        && (!('materials' in d) || validMaterials(d.materials));
+    }
+
+    function validMaterials(m) {
+      return m is map
+        && m.keys().hasOnly(['product', 'strategy', 'vibecoding', 'execution', 'analysis'])
+        && (!('product' in m) || (m.product is list && m.product.size() <= 50))
+        && (!('strategy' in m) || (m.strategy is list && m.strategy.size() <= 50))
+        && (!('vibecoding' in m) || (m.vibecoding is list && m.vibecoding.size() <= 50))
+        && (!('execution' in m) || (m.execution is list && m.execution.size() <= 50))
+        && (!('analysis' in m) || (m.analysis is list && m.analysis.size() <= 50));
+    }
+  }
+}
