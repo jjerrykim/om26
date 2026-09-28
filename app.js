@@ -404,6 +404,31 @@ function renderResult(data, st, t, r) {
     }
     case "summary":
       return checklistHtml(data);
+    case "stack":
+      return `<div class="stack">${[["화면", "프론트엔드", r.front], ["처리", "백엔드", r.backend], ["공개", "배포", r.deploy]].map(([k, en, v]) => `
+        <div class="layer"><span class="mono muted">${en}</span><h4>${k}</h4><p>${cell(v)}</p></div>`).join("")}</div>
+        ${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}`;
+    case "landing": {
+      const color = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(r.color || "").trim()) ? r.color.trim() : "var(--signal)";
+      const secs = String(r.sections || "").split("/").map(x => x.trim()).filter(Boolean);
+      return `<div class="wire" style="--brand:${esc(color)}">
+          <div class="wbar"><span class="wlogo"></span><span class="wmenu"><i></i><i></i><i></i></span></div>
+          <div class="whero"><h4>${cell(r.hero)}</h4>${r.sub ? `<p>${esc(r.sub)}</p>` : ""}${r.cta ? `<span class="wcta">${esc(r.cta)}</span>` : ""}</div>
+          ${secs.length ? `<div class="wsecs">${secs.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
+        </div>`;
+    }
+    case "iterate": {
+      const log = (r.log || []).filter(hasValue);
+      const u = safeUrl(r.preview);
+      return `${log.length ? `<ol class="iter">${log.map((l, i) => `<li><span class="tnum">${i + 1}</span><div><p class="ask">${cell(l.ask)}</p>${l.result ? `<p class="res">${esc(l.result)}</p>` : ""}</div></li>`).join("")}</ol>` : ""}
+        ${u ? `<a class="more mono" href="${esc(u)}" target="_blank" rel="noopener noreferrer">미리보기 열기 ${icon("ur")}</a>` : ""}`;
+    }
+    case "deploy": {
+      const u = safeUrl(r.url);
+      return `<div class="live">${u ? `<a class="liveurl" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u.replace(/^https?:\/\//, "").replace(/\/$/, ""))} ${icon("ur")}</a>` : `<p class="muted">공개 주소 없음</p>`}
+        <div class="livemeta">${r.platform ? `<span class="pill">${esc(r.platform)}</span>` : ""}${r.mobile ? `<span class="pill${r.mobile === "확인함" ? " paid" : ""}">스마트폰 ${esc(r.mobile)}</span>` : ""}</div>
+        ${r.next ? `<p class="dnote"><span class="mono muted">다음에 고칠 것</span>${cell(r.next)}</p>` : ""}</div>`;
+    }
     default:
       return `<dl class="dl7">${t.fields.map(f => `<div><dt>${esc(f.label)}</dt><dd>${cell(typeof r[f.k] === "string" ? r[f.k] : "")}</dd></div>`).join("")}</dl>`;
   }
@@ -542,6 +567,18 @@ function paintTask(st, index) {
       body = body.replace("{{business}}", b || t.prompt.fallback);
       hint = b ? "내 비즈니스 정리가 자동으로 들어갔습니다" : "1단계를 저장하면 [ ] 자리가 자동으로 채워집니다";
     }
+    const strat = stageOf("strategy");
+    const res = id => resultOf(data, strat, strat.tasks.find(x => x.id === id)) || {};
+    const fills = {
+      summary: (() => { const m = res("summary"); return hasValue(m) ? `나는 ${m.target}에게 ${m.value}${josa(m.value || "", "을", "를")} ${m.channel}${josa(m.channel || "", "으로", "로")} 전달해 ${m.stage} 단계를 공략한다` : ""; })(),
+      position: res("stp").position || "",
+      target: (() => { const p = res("stp"); const i = parseInt(String(p.first || "").replace(/\D/g, ""), 10) - 1; return p.segs?.[i]?.name || ""; })(),
+      home: (() => { const j = res("journey"); return j.home ? `${j.home}${j.homeWhy ? ` (${j.homeWhy})` : ""}` : ""; })(),
+      pages: res("bench").pages || ""
+    };
+    let missing = 0;
+    body = body.replace(/\{\{(summary|position|target|home|pages)\}\}/g, (_, k) => fills[k] || (missing++, `[2단계에서 작성]`));
+    if (/\{\{(summary|position|target|home|pages)\}\}/.test(t.prompt.body)) hint = missing ? `2단계 결과 중 ${missing}곳이 비어 있습니다. 해당 과제를 먼저 저장하세요` : "2단계 결과가 자동으로 들어갔습니다";
     if (body.includes("{{urls}}")) {
       const r = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "bench"));
       const urls = (r?.list || []).map(x => safeUrl(x?.url)).filter(Boolean);
