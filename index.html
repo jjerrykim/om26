@@ -65,10 +65,36 @@
   }
   .intro h1 .who { display: block; color: var(--ink-3); font-weight: 400; }
   .intro h1 .who.filled { color: var(--ink); font-weight: 700; }
-  .profile { margin: 0; display: grid; grid-template-columns: auto auto; gap: 10px 28px; min-width: 260px; }
-  .profile dt { color: var(--ink-3); }
-  .profile dd { margin: 0; font-weight: 600; text-align: right; }
-  .profile dd.blank { color: var(--ink-3); font-weight: 400; }
+  /* 입력 요소 공통 */
+  .field { display: grid; gap: 4px; min-width: 0; }
+  .field > span { color: var(--ink-3); }
+  input, select {
+    width: 100%; min-width: 0; margin: 0; padding: 6px 0 8px;
+    font: inherit; font-size: 16px; color: var(--ink);
+    background: transparent; border: 0; border-bottom: 1px solid var(--ink-3); border-radius: 0;
+    -webkit-appearance: none; appearance: none;
+  }
+  select {
+    padding-right: 20px; cursor: pointer;
+    background: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%) right 6px center / 5px 5px no-repeat,
+                linear-gradient(-45deg, transparent 50%, var(--ink-3) 50%) right 1px center / 5px 5px no-repeat;
+  }
+  select option { color: #121212; }
+  input::placeholder { color: var(--ink-3); opacity: .7; }
+  input:focus, select:focus { outline: none; border-bottom-color: var(--signal); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 20px; cursor: pointer;
+    font: 500 12px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase;
+    color: var(--paper); background: var(--ink); border: 1px solid var(--ink); border-radius: 0;
+    transition: background-color .2s, border-color .2s;
+  }
+  .btn:hover { background: var(--signal); border-color: var(--signal); }
+  .note { min-height: 1.5em; margin: 0; color: var(--ink-3); }
+  .note.ok { color: var(--signal); }
+
+  .profile { display: grid; gap: 16px; width: min(100%, 340px); }
+  .profile .btn { justify-self: start; }
 
   /* 전체 흐름 */
   .flow {
@@ -124,14 +150,26 @@
     display: grid; grid-template-columns: 36px 88px minmax(0, 1fr) auto; gap: 16px; align-items: baseline;
     padding: 18px 0; border-bottom: 1px solid var(--rule);
   }
-  a.row:hover .title { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-  a.row:hover .go { color: var(--signal); transform: translate(2px, -2px); }
+  a.title:hover { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  a.title:hover .go { color: var(--signal); transform: translate(2px, -2px); }
   .row .n, .row .type, .row .date { color: var(--ink-3); }
   .row .title { font-weight: 600; font-size: 17px; letter-spacing: -0.01em; }
   .row .desc { display: block; margin-top: 4px; color: var(--ink-2); font-size: 14px; font-weight: 400; }
   .row .end { display: flex; gap: 14px; align-items: baseline; white-space: nowrap; }
-  .row .go { transition: transform .2s, color .2s; }
-  .empty { padding: 28px 0; color: var(--ink-3); border-bottom: 1px solid var(--rule); }
+  .row .go { display: inline-block; transition: transform .2s, color .2s; }
+  .empty { margin: 0; padding: 28px 0; color: var(--ink-3); border-bottom: 1px solid var(--rule); }
+  .del {
+    padding: 4px 0; cursor: pointer; font: inherit; color: var(--ink-3);
+    background: none; border: 0;
+  }
+  .del:hover { color: var(--signal); }
+
+  .add {
+    display: grid; grid-template-columns: 120px minmax(0, 1fr) 150px; gap: 18px 20px;
+    margin-top: 28px; padding: 20px; background: color-mix(in srgb, var(--ink) 4%, transparent);
+  }
+  .add .wide { grid-column: 1 / -1; }
+  .add .actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 
   footer { display: flex; justify-content: space-between; gap: 16px; padding: 20px 0 32px; color: var(--ink-3); }
 
@@ -148,7 +186,10 @@
   /* 모바일 */
   @media (max-width: 640px) {
     .intro { grid-template-columns: minmax(0, 1fr); align-items: start; }
-    .profile { min-width: 0; border-top: 1px solid var(--rule); padding-top: 16px; }
+    .profile { width: 100%; border-top: 1px solid var(--rule); padding-top: 16px; }
+    .profile .btn, .add .btn { width: 100%; }
+    .add { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 16px; }
+    .add .f-title { grid-column: 1 / -1; order: -1; }
     .flow { grid-template-columns: minmax(0, 1fr); }
     .flow li + li { border-left: 0; border-top: 1px solid var(--rule); }
     .flow a { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-rows: auto; align-items: center; gap: 12px; padding: 16px 0; }
@@ -175,7 +216,13 @@
 
   <header class="intro">
     <h1 id="headline"></h1>
-    <dl class="profile" id="profile"></dl>
+    <form class="profile" id="profile" autocomplete="off">
+      <label class="field"><span class="mono">이름</span><input name="name" maxlength="20" placeholder="이름"></label>
+      <label class="field"><span class="mono">학과</span><input name="dept" maxlength="40" placeholder="학과"></label>
+      <label class="field"><span class="mono">학번</span><input name="id" maxlength="20" inputmode="numeric" placeholder="학번"></label>
+      <button class="btn" type="submit">반영하기</button>
+      <p class="note mono" id="profile-note" role="status"></p>
+    </form>
   </header>
 
   <nav aria-label="과정 흐름">
@@ -193,76 +240,90 @@
 
 <script>
 /*
-  1. 내 정보
-     아래 PROFILE에 이름, 학과, 학번을 입력합니다.
-
-  2. 학습자료 추가
-     파일은 materials/ 폴더의 단계별 하위 폴더에 올리고,
-     STAGES에서 해당 단계의 materials 배열에 한 줄을 추가합니다.
-     외부 링크(구글 슬라이드, 유튜브 등)는 url에 전체 주소를 적습니다.
-
-     { title: "자료 제목", type: "슬라이드", date: "2026-09-01", url: "materials/01-product/파일.pdf", desc: "한 줄 설명" }
+  학생은 페이지에서 직접 입력합니다.
+  이름, 학과, 학번과 단계별 자료 링크를 입력하고 반영하기를 누르면 화면에 반영되고
+  사용 중인 브라우저에 저장됩니다.
 */
-const PROFILE = {
-  name: "",   // 이름
-  dept: "",   // 학과
-  id: ""      // 학번
-};
-
 const STAGES = [
   {
     id: "product",
     name: "내 제품 정의",
     desc: "판매하거나 알리고 싶은 제품과 서비스를 정하고, 누구에게 어떤 가치를 주는지 정리합니다.",
-    topics: ["제품 선정", "핵심 가치", "타깃 고객", "경쟁 제품"],
-    materials: []
+    topics: ["제품 선정", "핵심 가치", "타깃 고객", "경쟁 제품"]
   },
   {
     id: "strategy",
     name: "마케팅 전략 기획",
     desc: "정의한 제품을 바탕으로 시장을 나누고, 포지셔닝과 채널, 목표 지표를 설계합니다.",
-    topics: ["STP", "포지셔닝", "채널 전략", "목표 KPI"],
-    materials: []
+    topics: ["STP", "포지셔닝", "채널 전략", "목표 KPI"]
   },
   {
     id: "vibecoding",
     name: "바이브코딩",
     desc: "AI 도구와 대화하며 제품 홈페이지와 랜딩페이지를 직접 만들어 봅니다.",
-    topics: ["AI 코딩 도구", "홈페이지 제작", "랜딩페이지", "배포"],
-    materials: []
+    topics: ["AI 코딩 도구", "홈페이지 제작", "랜딩페이지", "배포"]
   },
   {
     id: "execution",
     name: "마케팅 연동 및 실행",
     desc: "만든 페이지에 분석 도구와 마케팅 채널을 연결하고 실제 캠페인을 운영합니다.",
-    topics: ["분석 도구 연동", "SNS 채널", "광고 집행", "콘텐츠 발행"],
-    materials: []
+    topics: ["분석 도구 연동", "SNS 채널", "광고 집행", "콘텐츠 발행"]
   },
   {
     id: "analysis",
     name: "성과분석",
     desc: "수집한 데이터를 목표 지표와 비교해 성과를 평가하고 개선 방향을 도출합니다.",
-    topics: ["데이터 수집", "KPI 평가", "인사이트", "개선안"],
-    materials: []
+    topics: ["데이터 수집", "KPI 평가", "인사이트", "개선안"]
   }
 ];
+
+const TYPES = ["슬라이드", "문서", "실습", "영상", "웹페이지", "기타"];
+const STORE_KEY = "om2026-portfolio";
 
 const pad = n => String(n).padStart(2, "0");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const $ = id => document.getElementById(id);
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+function safeUrl(v) {
+  v = String(v || "").trim();
+  if (!v) return "";
+  if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+  try { const u = new URL(v); return /^https?:$/.test(u.protocol) ? u.href : ""; } catch { return ""; }
+}
 
-function render() {
-  const name = PROFILE.name.trim();
+/* 저장 */
+function load() {
+  const empty = { profile: { name: "", dept: "", id: "" }, materials: Object.fromEntries(STAGES.map(s => [s.id, []])) };
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (saved) {
+      Object.assign(empty.profile, saved.profile);
+      STAGES.forEach(s => { if (Array.isArray(saved.materials?.[s.id])) empty.materials[s.id] = saved.materials[s.id]; });
+    }
+  } catch {}
+  return empty;
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); return true; } catch { return false; }
+}
+const state = load();
+
+/* 화면 */
+function renderProfile() {
+  const { name, dept, id } = state.profile;
   $("headline").innerHTML = `<span class="who${name ? " filled" : ""}">${esc(name || "이름")}</span>학습 포트폴리오`;
-  if (name) document.title = `${name} | 온라인마케팅실전 학습 포트폴리오`;
+  document.title = name ? `${name} | 온라인마케팅실전 학습 포트폴리오` : "온라인마케팅실전 학습 포트폴리오";
+  const f = $("profile");
+  f.elements.name.value = name; f.elements.dept.value = dept; f.elements.id.value = id;
+}
 
-  $("profile").innerHTML = [["이름", PROFILE.name], ["학과", PROFILE.dept], ["학번", PROFILE.id]]
-    .map(([k, v]) => `<dt class="mono">${k}</dt><dd class="${v.trim() ? "" : "blank"}">${esc(v.trim() || "입력 전")}</dd>`)
-    .join("");
-
+function renderOverview() {
   $("flow").innerHTML = STAGES.map((s, i) => {
-    const n = s.materials.length;
-    const ticks = n ? Array.from({ length: n }, () => "<i></i>").join("") : `<i class="none"></i>`;
+    const n = state.materials[s.id].length;
+    const ticks = n ? "<i></i>".repeat(n) : `<i class="none"></i>`;
     return `
       <li>
         <a href="#${s.id}">
@@ -273,41 +334,117 @@ function render() {
       </li>`;
   }).join("");
 
-  const total = STAGES.reduce((a, s) => a + s.materials.length, 0);
-  const done = STAGES.filter(s => s.materials.length).length;
-  const next = STAGES.find(s => !s.materials.length);
+  const counts = STAGES.map(s => state.materials[s.id].length);
+  const total = counts.reduce((a, b) => a + b, 0);
+  const done = counts.filter(Boolean).length;
+  const next = counts.findIndex(n => !n);
   $("stats").innerHTML = `
     <div><b>${done}<span class="mono"> / ${STAGES.length}</span></b><span class="mono">진행 단계</span></div>
     <div><b>${total}</b><span class="mono">누적 자료</span></div>
-    <div><b class="${next ? "signal" : ""}">${next ? pad(STAGES.indexOf(next) + 1) : "완료"}</b><span class="mono">${next ? "다음 단계" : "전체 과정"}</span></div>`;
-
-  $("stages").innerHTML = STAGES.map((s, i) => {
-    const rows = s.materials.length
-      ? `<ol class="list">${s.materials.map((m, j) => {
-          const tag = m.url ? "a" : "div";
-          const href = m.url ? ` href="${esc(m.url)}" target="_blank" rel="noopener"` : "";
-          return `<li><${tag} class="row"${href}>
-            <span class="n mono">${pad(j + 1)}</span>
-            <span class="type mono">${esc(m.type || "자료")}</span>
-            <span class="title">${esc(m.title)}${m.desc ? `<span class="desc">${esc(m.desc)}</span>` : ""}</span>
-            <span class="end">${m.date ? `<span class="date mono">${esc(m.date)}</span>` : ""}${m.url ? `<span class="go" aria-hidden="true">↗</span>` : ""}</span>
-          </${tag}></li>`;
-        }).join("")}</ol>`
-      : `<div class="list"><p class="empty mono">등록된 자료 없음</p></div>`;
-    return `
-      <section class="stage" id="${s.id}">
-        <div class="stage-info">
-          <div class="stage-num">${pad(i + 1)}</div>
-          <h2>${esc(s.name)}</h2>
-          <p>${esc(s.desc)}</p>
-          <div class="topics mono">${s.topics.map(t => `<span>${esc(t)}</span>`).join("")}</div>
-        </div>
-        ${rows}
-      </section>`;
-  }).join("");
+    <div><b class="${next >= 0 ? "signal" : ""}">${next >= 0 ? pad(next + 1) : "완료"}</b><span class="mono">${next >= 0 ? "다음 단계" : "전체 과정"}</span></div>`;
 }
 
-render();
+function listHtml(s) {
+  const items = state.materials[s.id];
+  if (!items.length) return `<p class="empty mono">등록된 자료 없음</p>`;
+  return `<ol class="list">${items.map((m, j) => {
+    const title = m.url
+      ? `<a class="title" href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.title)} <span class="go" aria-hidden="true">↗</span></a>`
+      : `<span class="title">${esc(m.title)}</span>`;
+    return `<li class="row">
+      <span class="n mono">${pad(j + 1)}</span>
+      <span class="type mono">${esc(m.type)}</span>
+      <span class="body">${title}${m.desc ? `<span class="desc">${esc(m.desc)}</span>` : ""}</span>
+      <span class="end">
+        ${m.date ? `<span class="date mono">${esc(m.date)}</span>` : ""}
+        <button class="del mono" type="button" data-stage="${s.id}" data-index="${j}">삭제</button>
+      </span>
+    </li>`;
+  }).join("")}</ol>`;
+}
+
+function renderStages() {
+  $("stages").innerHTML = STAGES.map((s, i) => `
+    <section class="stage" id="${s.id}">
+      <div class="stage-info">
+        <div class="stage-num">${pad(i + 1)}</div>
+        <h2>${esc(s.name)}</h2>
+        <p>${esc(s.desc)}</p>
+        <div class="topics mono">${s.topics.map(t => `<span>${esc(t)}</span>`).join("")}</div>
+      </div>
+      <div>
+        <div class="list-wrap" id="list-${s.id}">${listHtml(s)}</div>
+        <form class="add" data-stage="${s.id}" autocomplete="off">
+          <label class="field"><span class="mono">종류</span>
+            <select name="type">${TYPES.map(t => `<option>${t}</option>`).join("")}</select>
+          </label>
+          <label class="field f-title"><span class="mono">제목</span><input name="title" maxlength="80" placeholder="자료 제목" required></label>
+          <label class="field"><span class="mono">날짜</span><input name="date" type="date" value="${today()}"></label>
+          <label class="field wide"><span class="mono">링크</span><input name="url" type="text" inputmode="url" placeholder="https://" maxlength="500"></label>
+          <label class="field wide"><span class="mono">설명</span><input name="desc" maxlength="120" placeholder="한 줄 설명 (선택)"></label>
+          <div class="actions">
+            <button class="btn" type="submit">반영하기</button>
+            <p class="note mono" role="status"></p>
+          </div>
+        </form>
+      </div>
+    </section>`).join("");
+}
+
+function refreshStage(id) {
+  $("list-" + id).innerHTML = listHtml(STAGES.find(s => s.id === id));
+  renderOverview();
+}
+
+function flash(el, ok, msg) {
+  el.textContent = msg;
+  el.className = "note mono" + (ok ? " ok" : "");
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ""; }, 3000);
+}
+const savedMsg = () => save() ? "반영되었습니다" : "반영되었지만 이 브라우저에는 저장되지 않습니다";
+
+/* 이벤트 */
+$("profile").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  state.profile = { name: f.elements.name.value.trim(), dept: f.elements.dept.value.trim(), id: f.elements.id.value.trim() };
+  renderProfile();
+  flash($("profile-note"), true, savedMsg());
+});
+
+$("stages").addEventListener("submit", e => {
+  const f = e.target.closest("form.add");
+  if (!f) return;
+  e.preventDefault();
+  const note = f.querySelector(".note");
+  const title = f.elements.title.value.trim();
+  if (!title) { flash(note, false, "제목을 입력하세요"); f.elements.title.focus(); return; }
+  const rawUrl = f.elements.url.value.trim();
+  const url = safeUrl(rawUrl);
+  if (rawUrl && !url) { flash(note, false, "링크 주소를 확인하세요"); f.elements.url.focus(); return; }
+  state.materials[f.dataset.stage].push({
+    type: f.elements.type.value, title, url, date: f.elements.date.value, desc: f.elements.desc.value.trim()
+  });
+  refreshStage(f.dataset.stage);
+  f.elements.title.value = ""; f.elements.url.value = ""; f.elements.desc.value = "";
+  flash(note, true, savedMsg());
+});
+
+$("stages").addEventListener("click", e => {
+  const b = e.target.closest(".del");
+  if (!b) return;
+  const list = state.materials[b.dataset.stage];
+  const item = list[+b.dataset.index];
+  if (!item || !confirm(`"${item.title}" 자료를 삭제할까요?`)) return;
+  list.splice(+b.dataset.index, 1);
+  save();
+  refreshStage(b.dataset.stage);
+});
+
+renderProfile();
+renderOverview();
+renderStages();
 </script>
 </body>
 </html>
