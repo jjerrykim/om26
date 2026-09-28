@@ -664,27 +664,51 @@ function onProfileSubmit(e) {
 /* 결과 불러오기 */
 function mountImport() {
   $("view").innerHTML = `
-    <header class="class-head"><div><h1>결과 불러오기</h1><p class="mono muted">JSON으로 받은 과제 결과를 내 대시보드에 저장합니다. 같은 과제는 덮어씁니다.</p></div></header>
+    <header class="class-head"><div><h1>결과 불러오기</h1><p class="mono muted">JSON 파일을 선택하거나 내용을 붙여 넣으면 내 대시보드에 저장합니다. 같은 과제는 덮어씁니다.</p></div></header>
     <main class="task-page"><section class="sec">
-      <form class="rform" id="iform"><label class="field wide"><span class="mono">JSON</span><textarea name="json" rows="14" placeholder='{ "results": { ... } }'></textarea></label>
-      <div class="actions"><button class="btn" type="submit">저장하기</button><p class="note mono" id="inote" role="status"></p></div></form>
+      <form class="rform" id="iform">
+        <label class="field wide"><span class="mono">파일 선택</span><input name="file" type="file" accept=".json,application/json"></label>
+        <label class="field wide"><span class="mono">또는 붙여 넣기</span><textarea name="json" rows="10" placeholder='{ "results": { ... } }'></textarea></label>
+        <p class="note mono wide" id="icheck"></p>
+        <div class="actions"><button class="btn" type="submit">저장하기</button><p class="note mono" id="inote" role="status"></p></div>
+      </form>
     </section></main>`;
-  $("iform").addEventListener("submit", onImport);
+  const f = $("iform");
+  f.addEventListener("submit", onImport);
+  f.elements.json.addEventListener("input", checkImport);
+  f.elements.file.addEventListener("change", async () => {
+    const file = f.elements.file.files[0];
+    if (!file) return;
+    f.elements.json.value = await file.text();
+    checkImport();
+  });
+}
+function parseImport(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { return { error: "JSON 형식이 올바르지 않습니다. 내용이 끝까지 들어갔는지 확인하세요" }; }
+  const keys = new Set(allTasks().map(x => taskKey(x.stage, x.task)));
+  const src = data?.results;
+  if (!src || typeof src !== "object") return { error: "results 항목이 없습니다" };
+  const results = Object.fromEntries(Object.entries(src).filter(([k, v]) => keys.has(k) && v && typeof v === "object"));
+  const n = Object.keys(results).length;
+  return n ? { results, n } : { error: "불러올 과제가 없습니다" };
+}
+function checkImport() {
+  const f = $("iform"), el = $("icheck");
+  const text = f.elements.json.value.trim();
+  if (!text) { el.textContent = ""; return; }
+  const r = parseImport(text);
+  el.className = "note mono wide" + (r.error ? "" : " ok");
+  el.textContent = r.error ? `${text.length.toLocaleString()}자 · ${r.error}` : `${text.length.toLocaleString()}자 · 과제 ${r.n}개 인식됨`;
 }
 function onImport(e) {
   e.preventDefault();
   const f = e.target, note = $("inote");
   if (!me()?.name) { flash(note, false, `먼저 <a href="#/">내 대시보드</a>에서 이름을 저장하세요`); return; }
-  let data;
-  try { data = JSON.parse(f.elements.json.value); } catch { flash(note, false, "JSON 형식을 확인하세요"); return; }
-  const keys = new Set(allTasks().map(x => taskKey(x.stage, x.task)));
-  const src = data?.results;
-  if (!src || typeof src !== "object") { flash(note, false, "results 항목이 없습니다"); return; }
-  const results = Object.fromEntries(Object.entries(src).filter(([k, v]) => keys.has(k) && v && typeof v === "object"));
-  const n = Object.keys(results).length;
-  if (!n) { flash(note, false, "불러올 과제가 없습니다"); return; }
+  const r = parseImport(f.elements.json.value.trim());
+  if (r.error) { flash(note, false, r.error); return; }
   withBusy(f, async () => {
-    try { await saveMine({ results }); flash(note, true, `과제 ${n}개를 저장했습니다 · <a href="#/">대시보드에서 보기</a>`); }
+    try { await saveMine({ results: r.results }); flash(note, true, `과제 ${r.n}개를 저장했습니다 · <a href="#/">대시보드에서 보기</a>`); }
     catch { flash(note, false, "저장하지 못했습니다"); }
   });
 }
