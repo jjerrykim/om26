@@ -128,6 +128,7 @@ function currentRoute() {
   }
   if (parts[0] === "s" && parts[1]) return { name: "student", uid: parts[1] };
   if (parts[0] === "class") return { name: "class" };
+  if (parts[0] === "import") return { name: "import" };
   return { name: "home" };
 }
 function routeKey(r) {
@@ -138,6 +139,7 @@ function routeKey(r) {
   if (!app.user) return "gate";
   if (r.name === "student") return r.uid === app.user.uid ? "dash:" + r.uid : "dash:" + r.uid;
   if (r.name === "class") return "class";
+  if (r.name === "import") return "import";
   return "dash:" + app.user.uid;
 }
 function route() {
@@ -150,6 +152,7 @@ function route() {
     else if (key === "wait") $("view").innerHTML = `<p class="empty mono">불러오는 중</p>`;
     else if (key === "gate") mountGate();
     else if (key === "class") mountClass();
+    else if (key === "import") mountImport();
     else if (key.startsWith("dash:")) mountDashboard(key.slice(5));
     else if (key.startsWith("stage:")) mountStage(r.stage);
     else if (key.startsWith("task:")) mountTask(r.stage, r.index);
@@ -650,6 +653,34 @@ function onProfileSubmit(e) {
       $("profile-wrap").hidden = true; $("facts-wrap").hidden = false;
       flash(note, true, "저장되었습니다");
     } catch { flash(note, false, "저장하지 못했습니다"); }
+  });
+}
+
+/* 결과 불러오기 */
+function mountImport() {
+  $("view").innerHTML = `
+    <header class="class-head"><div><h1>결과 불러오기</h1><p class="mono muted">JSON으로 받은 과제 결과를 내 대시보드에 저장합니다. 같은 과제는 덮어씁니다.</p></div></header>
+    <main class="task-page"><section class="sec">
+      <form class="rform" id="iform"><label class="field wide"><span class="mono">JSON</span><textarea name="json" rows="14" placeholder='{ "results": { ... } }'></textarea></label>
+      <div class="actions"><button class="btn" type="submit">저장하기</button><p class="note mono" id="inote" role="status"></p></div></form>
+    </section></main>`;
+  $("iform").addEventListener("submit", onImport);
+}
+function onImport(e) {
+  e.preventDefault();
+  const f = e.target, note = $("inote");
+  if (!me()?.name) { flash(note, false, `먼저 <a href="#/">내 대시보드</a>에서 이름을 저장하세요`); return; }
+  let data;
+  try { data = JSON.parse(f.elements.json.value); } catch { flash(note, false, "JSON 형식을 확인하세요"); return; }
+  const keys = new Set(allTasks().map(x => taskKey(x.stage, x.task)));
+  const src = data?.results;
+  if (!src || typeof src !== "object") { flash(note, false, "results 항목이 없습니다"); return; }
+  const results = Object.fromEntries(Object.entries(src).filter(([k, v]) => keys.has(k) && v && typeof v === "object"));
+  const n = Object.keys(results).length;
+  if (!n) { flash(note, false, "불러올 과제가 없습니다"); return; }
+  withBusy(f, async () => {
+    try { await saveMine({ results }); flash(note, true, `과제 ${n}개를 저장했습니다 · <a href="#/">대시보드에서 보기</a>`); }
+    catch { flash(note, false, "저장하지 못했습니다"); }
   });
 }
 
