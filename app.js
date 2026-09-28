@@ -1,8 +1,7 @@
 import { firebaseConfig } from "./firebase-config.js";
-import { STAGES, TYPES } from "./guide.js";
+import { STAGES } from "./guide.js";
 
 const FB = "https://www.gstatic.com/firebasejs/10.14.1";
-const MAX_ITEMS = 50;
 
 /* 공통 함수 */
 const $ = id => document.getElementById(id);
@@ -46,14 +45,12 @@ const icon = k => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path 
 const taskKey = (stage, task) => `${stage.id}_${task.id}`;
 const resultOf = (s, stage, task) => s?.results?.[taskKey(stage, task)] || null;
 const taskDone = (s, stage, task) => hasValue(resultOf(s, stage, task));
-const itemsOf = (s, stageId) => Array.isArray(s?.materials?.[stageId]) ? s.materials[stageId] : [];
 const stageOf = id => STAGES.find(s => s.id === id);
 const allTasks = () => STAGES.flatMap(st => st.tasks.map(t => ({ stage: st, task: t })));
 function stageProgress(s, st) {
   const done = st.tasks.filter(t => taskDone(s, st, t)).length;
-  return { done, total: st.tasks.length, links: itemsOf(s, st.id).length };
+  return { done, total: st.tasks.length };
 }
-const activity = (s, st) => { const p = stageProgress(s, st); return p.done + p.links; };
 function businessText(s) {
   const r = resultOf(s, STAGES[0], STAGES[0].tasks[0]);
   if (!hasValue(r)) return "";
@@ -188,7 +185,6 @@ document.addEventListener("click", e => {
   if (a === "login") login();
   else if (a === "logout") logout();
   else if (a === "copy") copyPrompt(act);
-  else if (a === "del") onDeleteMaterial(act);
   else if (a === "edit-profile") { $("profile-wrap").hidden = false; $("facts-wrap").hidden = true; }
 });
 
@@ -291,7 +287,7 @@ function paintDashboard(uid) {
 
   $("flow").innerHTML = STAGES.map((st, i) => {
     const p = stageProgress(data, st);
-    const label = st.tasks.length ? `${p.done} / ${p.total}` : (p.links ? `링크 ${p.links}` : "준비 중");
+    const label = st.tasks.length ? `${p.done} / ${p.total}` : "준비 중";
     return `<li><a class="cell" href="${mine ? `#/stage/${st.id}` : `#dash-${st.id}`}" ${mine ? "" : `data-scroll="dash-${st.id}"`}>
       <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow">${icon(mine ? "right" : "down")}</span></span>
       <span class="name">${esc(st.name)}</span>
@@ -308,7 +304,6 @@ function paintDashboard(uid) {
     : `<b>완료</b>`;
   $("stats").innerHTML = `
     <div><b>${done}<span class="mono"> / ${tasks.length}</span></b><span class="mono">완료한 과제</span></div>
-    <div><b>${STAGES.reduce((a, st) => a + itemsOf(data, st.id).length, 0)}</b><span class="mono">제출 링크</span></div>
     <div>${nextHtml}<span class="mono">${next ? "다음 할 일" : "전체 과제"}</span></div>`;
 
   const sm = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "summary"));
@@ -322,7 +317,7 @@ function paintDashboard(uid) {
       </div>
       ${st.tasks.filter(t => taskDone(data, st, t)).map(t => dashTask(data, st, t, st.tasks.indexOf(t), mine)).join("")}
       ${todoHtml(data, st, mine)}
-      ${linksHtml(data, st)}
+      ${st.tasks.length ? "" : `<p class="empty mono">준비 중</p>`}
     </section>`).join("");
 }
 function todoHtml(data, st, mine) {
@@ -332,15 +327,6 @@ function todoHtml(data, st, mine) {
     ? `<a href="#/stage/${st.id}/${st.tasks.indexOf(t) + 1}">${esc(t.title)}${icon("right")}</a>`
     : `<span>${esc(t.title)}</span>`).join("")}</div>`;
 }
-function linksHtml(data, st) {
-  const items = itemsOf(data, st.id);
-  if (!items.length && st.tasks.length) return "";
-  if (!items.length) return `<p class="empty mono">준비 중</p>`;
-  return `<div class="dcard"><div class="dcard-head"><h3>제출 링크</h3></div><ul class="dlinks">${items.map(m => {
-    const url = safeUrl(m.url);
-    return `<li><span class="mono muted">${esc(m.type)}</span>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)} ${icon("ur")}</a>` : esc(m.title)}${m.date ? `<span class="mono muted">${esc(m.date)}</span>` : ""}</li>`;
-  }).join("")}</ul></div>`;
-}
 function dashTask(data, st, t, j, mine) {
   const r = resultOf(data, st, t);
   const head = `<div class="dcard-head"><h3>${t.card ? `<span class="mono muted">${esc(t.card)}</span>` : ""}${esc(t.title)}</h3>${mine ? `<a class="more mono" href="#/stage/${st.id}/${j + 1}">${hasValue(r) ? "수정" : "작성하기"} ${icon("right")}</a>` : ""}</div>`;
@@ -349,7 +335,6 @@ function dashTask(data, st, t, j, mine) {
 }
 const lines = v => esc(v || "").split("\n").filter(Boolean).map(l => `<li>${l}</li>`).join("");
 const cell = v => v ? nl(v) : `<span class="muted">-</span>`;
-const fileLink = r => { const u = safeUrl(r.file); return u ? `<a class="dfile mono" href="${esc(u)}" target="_blank" rel="noopener noreferrer">제출 파일 ${icon("ur")}</a>` : ""; };
 function renderResult(data, st, t, r) {
   switch (t.id) {
     case "business":
@@ -360,14 +345,14 @@ function renderResult(data, st, t, r) {
     case "swot":
       return `<div class="swot">${[["S 강점", r.s], ["W 약점", r.w], ["O 기회", r.o], ["T 위협", r.t]].map(([k, v]) => `<div class="pane"><span class="mono muted">${k}</span><ul>${lines(v) || "<li class='muted'>-</li>"}</ul></div>`).join("")}</div>
         <div class="grid4">${[["SO", r.so], ["ST", r.st], ["WO", r.wo], ["WT", r.wt]].map(([k, v]) => `<div class="pane"><span class="mono muted">${k} 전략</span><p>${cell(v)}</p></div>`).join("")}</div>
-${fileLink(r)}`;
+`;
     case "journey": {
       const f = t.fields[0];
       return `<div class="tbl-wrap"><table class="tbl dtbl"><thead><tr><th>단계</th>${f.cols.map(c => `<th>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((row, i) => {
         const v = (r.rows || [])[i] || {};
         return `<tr class="${r.home === row ? "hl" : ""}"><th scope="row">${esc(row)}${r.home === row ? `<span class="tag mono">홈페이지</span>` : ""}</th>${f.cols.map(c => `<td>${cell(v[c.k])}</td>`).join("")}</tr>`;
       }).join("")}</tbody></table></div>
-        ${r.home ? `<p class="dnote"><span class="mono muted">홈페이지가 담당할 단계 · ${esc(r.home)}</span>${cell(r.homeWhy)}</p>` : ""}${fileLink(r)}`;
+        ${r.home ? `<p class="dnote"><span class="mono muted">홈페이지가 담당할 단계 · ${esc(r.home)}</span>${cell(r.homeWhy)}</p>` : ""}`;
     }
     case "rivals": {
       const list = (r.list || []).filter(hasValue);
@@ -400,7 +385,7 @@ ${fileLink(r)}`;
         ${weak.length ? `<div class="grid2">${weak.map(w => `<div class="pane"><span class="mono muted">${esc(w.stage || "약한 단계")}</span><p><b>0원</b> ${cell(w.free)}</p><p><b>30만원</b> ${cell(w.paid)}</p></div>`).join("")}</div>` : ""}`;
     }
     case "summary":
-      return `${checklistHtml(data)}${fileLink(r)}`;
+      return checklistHtml(data);
     default:
       return `<dl class="dl7">${t.fields.map(f => `<div><dt>${esc(f.label)}</dt><dd>${cell(typeof r[f.k] === "string" ? r[f.k] : "")}</dd></div>`).join("")}</dl>`;
   }
@@ -445,7 +430,6 @@ function mapSvg(r) {
 /* 단계 페이지 */
 function mountStage(st) {
   const i = STAGES.indexOf(st);
-  const mine = Boolean(app.user);
   $("view").innerHTML = `
     <header class="intro stage-intro">
       <div>${backLink("#/", app.user ? "내 대시보드" : "처음으로")}
@@ -462,14 +446,8 @@ function mountStage(st) {
           <h2 class="sec-h">과제<span>순서대로 진행하세요</span></h2>
           <ol class="tasklist" id="tasklist"></ol>
         </section>` : `
-        <section class="notice"><h2>준비 중</h2><p>이 단계의 과제는 수업 진행에 맞춰 열립니다. 결과물 링크는 아래에 등록할 수 있습니다.</p></section>
-        <section class="sec">
-          <h2 class="sec-h">제출 링크</h2>
-          <div id="links"></div>
-          ${mine ? addFormHtml(st) : ""}
-        </section>`}
+        <section class="notice"><h2>준비 중</h2><p>이 단계의 과제는 수업 진행에 맞춰 열립니다.</p></section>`}
     </main>`;
-  if (mine) $("view").querySelector("form.add")?.addEventListener("submit", onAddMaterial);
 }
 function stageTabs(st) {
   return `<nav class="tabs" aria-label="단계">${STAGES.map((s, i) => `<a href="#/stage/${s.id}" ${s === st ? 'aria-current="page"' : ""}><span class="mono">${pad(i + 1)}</span>${esc(s.name)}</a>`).join("")}</nav>`;
@@ -485,7 +463,6 @@ function paintStage(st) {
       <span class="ts mono">${ok ? `${icon("check")} 저장됨` : "미작성"}</span>
     </a></li>`;
   }).join("");
-  if ($("links")) $("links").innerHTML = materialListHtml(st, itemsOf(data, st.id), Boolean(app.user));
 }
 
 /* 과제 페이지 */
@@ -676,58 +653,6 @@ function onProfileSubmit(e) {
   });
 }
 
-/* 제출 링크 */
-function addFormHtml(st) {
-  return `
-    <form class="add" data-stage="${st.id}" autocomplete="off">
-      <label class="field"><span class="mono">종류</span><select name="type">${TYPES.map(t => `<option>${t}</option>`).join("")}</select></label>
-      <label class="field f-title"><span class="mono">제목</span><input name="title" maxlength="80" placeholder="자료 제목" required></label>
-      <label class="field"><span class="mono">날짜</span><input name="date" type="date" value="${today()}"></label>
-      <label class="field wide"><span class="mono">링크</span><input name="url" type="text" inputmode="url" placeholder="https://" maxlength="500"></label>
-      <label class="field wide"><span class="mono">설명</span><input name="desc" maxlength="120" placeholder="한 줄 설명 (선택)"></label>
-      <div class="actions"><button class="btn" type="submit">등록하기</button><p class="note mono" role="status"></p></div>
-    </form>`;
-}
-function materialListHtml(st, items, mine) {
-  if (!items.length) return `<p class="empty mono">등록된 링크 없음</p>`;
-  return `<ol class="list">${items.map((m, j) => {
-    const url = safeUrl(m.url);
-    const title = url ? `<a class="title" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)} <span class="go">${icon("ur")}</span></a>` : `<span class="title">${esc(m.title)}</span>`;
-    return `<li class="row"><span class="n mono">${pad(j + 1)}</span><span class="type mono">${esc(m.type)}</span>
-      <span class="body">${title}${m.desc ? `<span class="desc">${esc(m.desc)}</span>` : ""}</span>
-      <span class="end">${m.date ? `<span class="date mono">${esc(m.date)}</span>` : ""}${mine ? `<button class="del mono" type="button" data-act="del" data-stage="${st.id}" data-index="${j}">삭제</button>` : ""}</span></li>`;
-  }).join("")}</ol>`;
-}
-function onAddMaterial(e) {
-  e.preventDefault();
-  const f = e.target;
-  const note = f.querySelector(".note");
-  const stageId = f.dataset.stage;
-  if (!me()?.name) { flash(note, false, `먼저 <a href="#/">내 대시보드</a>에서 이름을 저장하세요`); return; }
-  const title = f.elements.title.value.trim();
-  if (!title) { flash(note, false, "제목을 입력하세요"); return; }
-  const rawUrl = f.elements.url.value.trim();
-  const url = safeUrl(rawUrl);
-  if (rawUrl && !url) { flash(note, false, "링크 주소를 확인하세요"); return; }
-  const items = itemsOf(me(), stageId);
-  if (items.length >= MAX_ITEMS) { flash(note, false, `한 단계에 ${MAX_ITEMS}개까지 등록할 수 있습니다`); return; }
-  const item = { type: f.elements.type.value, title, url, date: f.elements.date.value, desc: f.elements.desc.value.trim() };
-  withBusy(f, async () => {
-    try {
-      await saveMine({ materials: { [stageId]: [...items, item] } });
-      f.elements.title.value = ""; f.elements.url.value = ""; f.elements.desc.value = "";
-      flash(note, true, "등록되었습니다");
-    } catch { flash(note, false, "저장하지 못했습니다"); }
-  });
-}
-async function onDeleteMaterial(b) {
-  const items = itemsOf(me(), b.dataset.stage);
-  const idx = +b.dataset.index;
-  if (!items[idx] || !confirm(`"${items[idx].title}" 링크를 삭제할까요?`)) return;
-  try { await saveMine({ materials: { [b.dataset.stage]: items.filter((_, i) => i !== idx) } }); }
-  catch { alert("삭제하지 못했습니다"); }
-}
-
 /* 수강생 전체 */
 function mountClass() {
   $("view").innerHTML = `
@@ -751,7 +676,7 @@ function paintClass() {
   const list = sortedStudents();
   const n = list.length;
   $("flow").innerHTML = STAGES.map((s, i) => {
-    const done = list.filter(([, st]) => activity(st, s)).length;
+    const done = list.filter(([, st]) => stageProgress(st, s).done).length;
     const pct = n ? Math.round(done / n * 100) : 0;
     return `<li><a class="cell" href="#/stage/${s.id}">
       <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow">${icon("right")}</span></span>
@@ -779,7 +704,7 @@ function paintRoster() {
     <span class="strip">${STAGES.map((_, i) => `<span class="sq">${pad(i + 1)}</span>`).join("")}</span><span class="sum">완료</span></li>`;
   if (!list.length) { el.innerHTML = head + `<li class="empty mono">${q ? "검색 결과 없음" : "아직 등록한 학생이 없습니다"}</li>`; return; }
   el.innerHTML = head + list.map(([uid, s], i) => {
-    const c = STAGES.map(st => activity(s, st));
+    const c = STAGES.map(st => stageProgress(s, st).done);
     const d = tasks.filter(x => taskDone(s, x.stage, x.task)).length;
     return `<li><a class="r" href="#/s/${encodeURIComponent(uid)}">
       <span class="n mono">${pad(i + 1)}</span>
