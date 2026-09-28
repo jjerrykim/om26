@@ -15,12 +15,13 @@ service cloud.firestore {
     }
 
     function validStudent(d) {
-      return d.keys().hasOnly(['name', 'dept', 'sid', 'materials', 'updatedAt'])
+      return d.keys().hasOnly(['name', 'dept', 'sid', 'materials', 'results', 'updatedAt'])
         && d.updatedAt == request.time
         && (!('name' in d) || (d.name is string && d.name.size() <= 20))
         && (!('dept' in d) || (d.dept is string && d.dept.size() <= 40))
         && (!('sid' in d) || (d.sid is string && d.sid.size() <= 20))
-        && (!('materials' in d) || validMaterials(d.materials));
+        && (!('materials' in d) || validMaterials(d.materials))
+        && (!('results' in d) || (d.results is map && d.results.size() <= 40));
     }
 
     function validMaterials(m) {
