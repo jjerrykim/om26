@@ -1,6 +1,5 @@
 import { firebaseConfig } from "./firebase-config.js";
 import { STAGES } from "./guide.js";
-import { EXAMPLE } from "./example.js";
 
 const FB = "https://www.gstatic.com/firebasejs/10.14.1";
 
@@ -129,7 +128,6 @@ function currentRoute() {
   }
   if (parts[0] === "s" && parts[1]) return { name: "student", uid: parts[1] };
   if (parts[0] === "class") return { name: "class" };
-  if (parts[0] === "example") return { name: "example" };
   if (parts[0] === "import") return { name: "import" };
   return { name: "home" };
 }
@@ -138,7 +136,6 @@ function routeKey(r) {
   if (!app.authReady) return "wait";
   if (r.name === "stage") return "stage:" + r.stage.id;
   if (r.name === "task") return `task:${r.stage.id}:${r.index}`;
-  if (r.name === "example") return "dash:example";
   if (!app.user) return "gate";
   if (r.name === "student") return r.uid === app.user.uid ? "dash:" + r.uid : "dash:" + r.uid;
   if (r.name === "class") return "class";
@@ -175,14 +172,13 @@ window.addEventListener("hashchange", route);
 function renderNav(r) {
   if (!configured) { $("nav").innerHTML = ""; return; }
   if (!app.user) {
-    $("nav").innerHTML = app.authReady ? `<a class="link" href="#/example" ${r.name === "example" ? 'aria-current="page"' : ""}>예시</a><button class="link mono" type="button" data-act="login">로그인</button>` : "";
+    $("nav").innerHTML = app.authReady ? `<button class="link mono" type="button" data-act="login">로그인</button>` : "";
     return;
   }
   const dash = r.name === "home" || (r.name === "student" && r.uid === app.user.uid);
   $("nav").innerHTML = `
     <a class="link" href="#/" ${dash ? 'aria-current="page"' : ""}>내 대시보드</a>
     <a class="link" href="#/class" ${r.name === "class" || (r.name === "student" && !dash) ? 'aria-current="page"' : ""}>수강생</a>
-    <a class="link" href="#/example" ${r.name === "example" ? 'aria-current="page"' : ""}>예시</a>
     <button class="link mono hide-sm" type="button" data-act="logout">로그아웃</button>`;
 }
 document.addEventListener("click", e => {
@@ -241,12 +237,11 @@ function pointsHtml(points) {
 }
 
 /* 대시보드 */
-function dashData(uid) { return uid === "example" ? EXAMPLE : app.students.get(uid); }
 function mountDashboard(uid) {
   const mine = uid === app.user?.uid;
   const side = mine ? `
     <div class="side">
-      <div id="facts-wrap"><dl class="facts" id="facts"></dl><button class="link mono" type="button" data-act="edit-profile">정보 수정</button></div>
+      <div id="facts-wrap"><dl class="facts" id="facts"></dl><button class="btn ghost edit" type="button" data-act="edit-profile">정보 수정</button></div>
       <form class="profile" id="profile" autocomplete="off">
         <div id="profile-wrap" class="profile-fields">
           <label class="field"><span class="mono">이름</span><input name="name" maxlength="20" placeholder="이름" required></label>
@@ -259,7 +254,7 @@ function mountDashboard(uid) {
     </div>` : `<div class="side"><dl class="facts" id="facts"></dl></div>`;
   $("view").innerHTML = `
     <header class="intro">
-      <div>${mine || uid === "example" ? "" : backLink("#/class", "수강생")}<h1 id="headline"></h1></div>
+      <div>${mine ? "" : backLink("#/class", "수강생")}<h1 id="headline"></h1></div>
       ${side}
     </header>
     <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
@@ -274,13 +269,13 @@ function mountDashboard(uid) {
 }
 function paintDashboard(uid) {
   const mine = uid === app.user?.uid;
-  const s = dashData(uid);
+  const s = app.students.get(uid);
   if (!s && !mine) { $("headline").innerHTML = app.loaded ? "학생을 찾을 수 없습니다" : "불러오는 중"; return; }
   const data = s || {};
-  $("headline").innerHTML = `${esc(data.name || "이름")}<span class="sub">${uid === "example" ? "학습 대시보드 예시" : "학습 대시보드"}</span>`;
+  $("headline").innerHTML = `${esc(data.name || "이름")}<span class="sub">학습 대시보드</span>`;
   document.title = data.name ? `${data.name} | 온라인마케팅실전` : "온라인마케팅실전 학습 포트폴리오";
 
-  $("facts").innerHTML = (data.facts || [["학과", data.dept], ["학번", data.sid]]).map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
+  $("facts").innerHTML = [["학과", data.dept], ["학번", data.sid]].map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
   if (mine) {
     const f = $("profile");
     const needName = !data.name;
