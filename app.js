@@ -8,6 +8,18 @@ const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2, "0");
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nl = s => esc(s).replace(/\n/g, "<br>");
+// 받침에 따라 조사 선택 (을/를, 으로/로). 으로는 ㄹ 받침이면 로
+function josa(word, withFinal, noFinal) {
+  const m = String(word).match(/[가-힣a-zA-Z0-9](?=[^가-힣a-zA-Z0-9]*$)/);
+  if (!m) return noFinal;
+  const ch = m[0];
+  let fin = 0, rieul = false;
+  if (/[가-힣]/.test(ch)) { fin = (ch.charCodeAt(0) - 0xac00) % 28; rieul = fin === 8; }
+  else if (/[0-9]/.test(ch)) { fin = "013678".includes(ch) ? 1 : 0; rieul = "178".includes(ch); }
+  else { const c = ch.toLowerCase(); fin = "lmnr".includes(c) ? 1 : 0; rieul = c === "l" || c === "r"; }
+  if (!fin) return noFinal;
+  return withFinal === "으로" && rieul ? noFinal : withFinal;
+}
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 function safeUrl(v) {
   v = String(v || "").trim();
@@ -287,7 +299,7 @@ function paintDashboard(uid) {
     <div>${nextHtml}<span class="mono">${next ? "다음 할 일" : "전체 과제"}</span></div>`;
 
   const sm = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "summary"));
-  $("oneline").innerHTML = hasValue(sm) ? `<p class="oneline">나는 <b>${esc(sm.target || "[타깃]")}</b>에게 <b>${esc(sm.value || "[가치]")}</b>를 <b>${esc(sm.channel || "[채널]")}</b>로 전달해 <b>${esc(sm.stage || "[단계]")}</b> 단계를 공략한다</p>` : "";
+  $("oneline").innerHTML = hasValue(sm) ? `<p class="oneline">나는 <b>${esc(sm.target || "[타깃]")}</b>에게 <b>${esc(sm.value || "[가치]")}</b>${josa(sm.value || "가치", "을", "를")} <b>${esc(sm.channel || "[채널]")}</b>${josa(sm.channel || "채널", "으로", "로")} 전달해 <b>${esc(sm.stage || "[단계]")}</b> 단계를 공략한다</p>` : "";
   $("board").innerHTML = STAGES.map((st, i) => `
     <section class="dash-stage" id="dash-${st.id}">
       <div class="dash-head">

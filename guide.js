@@ -290,13 +290,13 @@ export const STAGES = [
           "1단계 ⑦ 경쟁우위도 이 문장에 맞게 다시 수정"
         ],
         steps: [
-          "네 칸을 채우고 저장합니다.",
+          "네 칸을 짧은 명사로 채우고 저장합니다. 예: 소규모 플리마켓 운영자 · 무료 모집 · 심사 도구 · 네이버 검색",
           "대시보드 점검표에서 빈 과제를 확인해 마저 채웁니다."
         ],
         fields: [
-          { k: "target", label: "타깃", type: "text", ph: "수성구에서 일하는 30~40대 직장인" },
-          { k: "value", label: "경쟁사와 다른 가치", type: "text", ph: "혼자 두 시간을 눈치 없이 앉을 수 있는 자리" },
-          { k: "channel", label: "채널", type: "text", ph: "네이버 플레이스와 인스타그램 릴스" },
+          { k: "target", label: "타깃", type: "text", ph: "수성구 30~40대 직장인" },
+          { k: "value", label: "경쟁사와 다른 가치", type: "text", ph: "조용한 1인 좌석" },
+          { k: "channel", label: "채널", type: "text", ph: "네이버 플레이스" },
           { k: "stage", label: "여정 단계", type: "select", options: JOURNEY }
         ]
       }
