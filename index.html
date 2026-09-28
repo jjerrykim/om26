@@ -279,33 +279,12 @@
   .sec-h + .tasklist, .sec-h + .follow, .sec-h + .list, .sec-h + div > .list, .sec-h + .tbl-wrap .tbl { border-top: 0; }
   .sec-h + .follow li:first-child, .sec-h + .tasklist li:first-child a { padding-top: 8px; }
   .sec-h span { font-size: 14px; font-weight: 400; color: var(--ink-3); letter-spacing: 0; }
-  details.concept > summary { list-style: none; cursor: pointer; }
-  details.concept > summary::-webkit-details-marker { display: none; }
-  details.concept > summary .sec-h::after { content: "접기"; margin-left: auto; font: 500 12px var(--mono); color: var(--ink-3); }
-  details.concept:not([open]) > summary .sec-h::after { content: "펼치기"; }
 
-  /* 개념 블록 */
-  .blocks { display: grid; gap: 20px; }
-  .bh { margin: 16px 0 0; font-size: var(--fs-h3); letter-spacing: -0.01em; }
-  .bh span { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; color: var(--ink-3); }
-  .bp { margin: 0; color: var(--ink-2); max-width: 80ch; }
-  .bkey { margin: 0; padding: 14px 18px; border-left: 3px solid var(--signal); background: color-mix(in srgb, var(--signal) 6%, transparent); font-weight: 600; }
-  .bsrc { margin: 0; font-size: 12px; color: var(--ink-3); }
   .tbl-wrap { overflow-x: auto; }
   .tbl { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
   .tbl th, .tbl td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); }
   .tbl thead th { font-weight: 600; color: var(--ink-3); font-size: 12px; border-bottom: 1px solid var(--ink); white-space: nowrap; }
   .tbl tbody th { font-weight: 600; white-space: nowrap; }
-  .bcards { display: grid; gap: 12px; }
-  .bcards.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .bcards.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .bcards.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .bcard { display: grid; align-content: start; gap: 6px; padding: 16px 18px; border: 1px solid var(--rule); }
-  .bcard strong { font-size: 16px; letter-spacing: -0.01em; }
-  .bcard ul, .bsteps ul, .prompt-side ul, .lab ul, .pane ul { margin: 0; padding-left: 16px; color: var(--ink-2); font-size: 14px; }
-  .bsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; counter-reset: s; }
-  .bsteps > li { position: relative; padding: 16px 18px; border-top: 2px solid var(--ink); background: color-mix(in srgb, var(--ink) 3%, transparent); }
-  .bsteps > li strong { display: block; margin-bottom: 4px; }
 
   /* 과제 목록 */
   .tasklist { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
@@ -323,18 +302,21 @@
   .follow { margin: 0; padding: 0; list-style: none; counter-reset: f; display: grid; gap: 0; border-top: 1px solid var(--rule); }
   .follow li { counter-increment: f; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
   .follow li::before { content: counter(f, decimal-leading-zero); font: 500 12px var(--mono); color: var(--signal); padding-top: 3px; }
-  .prompt { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
-  .prompt-main { border: 1px solid var(--ink); min-width: 0; }
-  .prompt-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--rule); }
+  .prompt { position: relative; border: 1px solid var(--ink); }
+  .prompt .copy { position: absolute; top: 12px; right: 12px; min-height: 36px; padding: 0 14px; }
+  .prompt pre { padding-right: 140px !important; }
+  .sec-h #prompt-hint { color: var(--signal); }
+  .points { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; counter-reset: pt; }
+  .points li { counter-increment: pt; display: grid; gap: 10px; align-content: start; padding: 18px 20px 20px; background: color-mix(in srgb, var(--ink) 3%, transparent); font-size: var(--fs-body); font-weight: 600; line-height: 1.5; letter-spacing: -0.01em; }
+  .points li::before { content: counter(pt, decimal-leading-zero); font: 500 12px var(--mono); color: var(--signal); }
+  .todo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+  .todo a, .todo > span:not(.mono) { display: inline-flex; align-items: center; gap: 2px; padding: 6px 10px 6px 12px; border: 1px solid var(--rule); font-size: var(--fs-sm); }
+  .todo a:hover { border-color: var(--signal); color: var(--signal); }
+  .todo .ic { width: 14px; height: 14px; }
+  .oneline { margin: clamp(32px, 5vw, 48px) 0 0; padding: clamp(20px, 3vw, 32px); background: color-mix(in srgb, var(--signal) 6%, transparent); border-left: 3px solid var(--signal); font-size: var(--fs-h2); line-height: 1.5; letter-spacing: -0.02em; }
+  .oneline b { color: var(--signal); }
+
   .prompt pre { margin: 0; padding: 18px 20px; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; font: 15px/1.75 var(--sans); color: var(--ink); background: color-mix(in srgb, var(--ink) 2%, transparent); }
-  .prompt-side { display: grid; gap: 12px; align-content: start; }
-  .prompt-side > div { padding: 16px 18px; border: 1px solid var(--rule); }
-  .prompt-side strong { display: block; margin-bottom: 6px; }
-  .lab { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; padding: 20px; border: 1px solid var(--ink); }
-  .lab strong { display: block; margin-bottom: 8px; }
-  .lab dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; }
-  .lab dt { color: var(--ink-3); }
-  .lab dd { margin: 0; }
 
   /* 결과 입력 */
   .result .sec-h { border-bottom-color: var(--signal); }
@@ -475,10 +457,9 @@
   }
 
   @media (max-width: 1024px) {
-    .bcards.c3, .bcards.c4, .grid4, .gcards.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid4, .gcards.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .gcards.n3 { grid-template-columns: minmax(0, 1fr); }
-    .bsteps { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .prompt { grid-template-columns: minmax(0, 1fr); }
+    .points { grid-template-columns: minmax(0, 1fr); gap: 8px; }
     .stp { grid-template-columns: minmax(0, 1fr); }
     .pmap { max-width: 360px; }
     .side { justify-items: start; min-width: 0; width: min(100%, 420px); }
@@ -492,10 +473,10 @@
     .side { justify-items: stretch; min-width: 0; }
     .side .link { justify-self: start; }
     .profile-fields { width: 100%; }
-    .bcards.c2, .bcards.c3, .bcards.c4, .grid2, .grid3, .grid4, .swot, .gcards.n2, .gcards.n4, .checks, .bsteps { grid-template-columns: minmax(0, 1fr); }
+    .grid2, .grid3, .grid4, .swot, .gcards.n2, .gcards.n4, .checks { grid-template-columns: minmax(0, 1fr); }
     .rform { grid-template-columns: minmax(0, 1fr); padding: 16px; }
     .rform .btn { width: 100%; }
-    .lab { grid-template-columns: minmax(0, 1fr); }
+    .prompt pre { padding-right: 20px !important; padding-top: 60px !important; }
     .tasklist a { grid-template-columns: 32px minmax(0, 1fr); }
     .tasklist .ts { grid-column: 2; justify-self: start; }
     .ghead { display: none; }
