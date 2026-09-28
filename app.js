@@ -321,7 +321,7 @@ function todoHtml(data, st, mine) {
 }
 function dashTask(data, st, t, j, mine) {
   const r = resultOf(data, st, t);
-  const head = `<div class="dcard-head"><h3>${t.card ? `<span class="mono muted">${esc(t.card)}</span>` : ""}${esc(t.id === "summary" ? "기획서 점검" : t.title)}</h3>${mine ? `<a class="more mono" href="#/stage/${st.id}/${j + 1}">${hasValue(r) ? "수정" : "작성하기"} ${icon("right")}</a>` : ""}</div>`;
+  const head = `<div class="dcard-head"><h3><span class="tnum">${pad(j + 1)}</span>${esc(t.id === "summary" ? "기획서 점검" : t.title)}</h3>${mine ? `<a class="more mono" href="#/stage/${st.id}/${j + 1}">${hasValue(r) ? "수정" : "작성하기"} ${icon("right")}</a>` : ""}</div>`;
   if (!hasValue(r)) return `<div class="dcard is-empty">${head}<p class="empty-line mono">아직 작성하지 않았습니다</p></div>`;
   return `<div class="dcard">${head}${renderResult(data, st, t, r)}</div>`;
 }
