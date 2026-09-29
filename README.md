@@ -42,7 +42,7 @@
 
 ## 배포 (GitHub Pages)
 
-저장소 Settings > Pages에서 배포할 브랜치와 `/ (root)` 폴더를 선택하면 `https://jjerrykim.github.io/online-marketing-2026/` 주소로 열립니다.
+저장소 Settings > Pages에서 배포할 브랜치와 `/ (root)` 폴더를 선택하면 `https://jjerrykim.github.io/om26/` 주소로 열립니다.
 
 ## 참고
 
