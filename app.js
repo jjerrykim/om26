@@ -1,6 +1,7 @@
 import { firebaseConfig } from "./firebase-config.js";
 import { STAGES } from "./guide.js";
 import { CASE } from "./case.js";
+import { PROMO, DIRECT, INDIRECT, walk, isCount } from "./trees.js";
 
 const FB = "https://www.gstatic.com/firebasejs/10.14.1";
 
@@ -336,6 +337,7 @@ function paintBoard(uid, data, mine) {
       ${todoHtml(data, st, mine)}
       ${st.tasks.length ? "" : `<p class="empty mono">준비 중</p>`}
     </section>` + sourcesHtml(data);
+  foldTrees($("board"));
 }
 function sourcesHtml(data) {
   if (!data.sources?.length) return "";
@@ -496,6 +498,27 @@ function renderResult(data, st, t, r) {
         <div class="livemeta">${r.platform ? `<span class="pill">${esc(r.platform)}</span>` : ""}${r.mobile ? `<span class="pill${r.mobile === "확인함" ? " paid" : ""}">스마트폰 ${esc(r.mobile)}</span>` : ""}</div>
         ${r.next ? `<p class="dnote"><span class="mono muted">다음에 고칠 것</span>${cell(r.next)}</p>` : ""}</div>`;
     }
+    case "channels": {
+      const picks = r.picks || [];
+      const names = [];
+      walk(PROMO, n => { if (picks.includes(n.id)) { const path = []; for (let p = n.parent; p && p.depth > 0; p = p.parent) path.unshift(p.t); names.push({ path: path.join(" > "), t: n.t }); } });
+      return `${names.length ? `<div class="picked">${names.map(x => `<span><small>${esc(x.path)}</small>${esc(x.t)}</span>`).join("")}</div>` : ""}
+        ${treeHtml(PROMO, { mode: "view", picks })}
+        ${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}`;
+    }
+    case "direct":
+    case "indirect": {
+      const root = TREES[t.id];
+      const d = diagnose(root, r.counts);
+      const acts = d ? actionsOf(d.node) : [];
+      const path = d ? (() => { const a = []; for (let p = d.node; p && p.depth > 0; p = p.parent) if (p.kind !== "via") a.unshift(p.t); return a.join(" > "); })() : "";
+      return `${d ? `<div class="diag">
+          <div class="dg-main"><span class="mono muted">이탈이 가장 큰 가지</span><h4>${esc(path)}</h4><b class="dg-rate">${(d.rate * 100).toFixed(1)}%</b></div>
+          ${acts.length ? `<div class="dg-acts"><span class="mono muted">개선 행동</span><ul>${acts.map(a => `<li>${esc(a)}</li>`).join("")}</ul></div>` : ""}
+        </div>` : `<p class="dnote"><span class="mono muted">진단</span>갈림길 숫자를 두 단계 이상 입력하면 이탈이 가장 큰 가지가 표시됩니다</p>`}
+        ${treeHtml(root, { mode: "view", counts: r.counts, hot: d?.node })}
+        ${r.period || r.next ? `<div class="grid2">${r.period ? `<p class="dnote"><span class="mono muted">기간</span>${cell(r.period)}</p>` : ""}${r.next ? `<p class="dnote"><span class="mono muted">다음 달에 할 일</span>${cell(r.next)}</p>` : ""}</div>` : ""}`;
+    }
     default:
       return `<dl class="dl7">${t.fields.map(f => `<div><dt>${esc(f.label)}</dt><dd>${cell(typeof r[f.k] === "string" ? r[f.k] : "")}</dd></div>`).join("")}</dl>`;
   }
@@ -553,6 +576,7 @@ function mountStage(st) {
     ${stageTabs(st)}
     <main class="stage-page">
       ${st.points.length ? `<section class="sec">${pointsHtml(st.points)}</section>` : ""}
+      ${(st.overview || []).length ? `<section class="sec"><h2 class="sec-h">한눈에 보기</h2>${st.overview.map(id => `<div class="tree-block"><h3>${esc(TREES[id].t)}${TREES[id].en ? ` (${esc(TREES[id].en)})` : ""}</h3>${treeHtml(TREES[id], { mode: "view" })}</div>`).join("")}</section>` : ""}
       ${st.tasks.length ? `
         <section class="sec">
           <h2 class="sec-h">과제<span>순서대로 진행하세요</span></h2>
@@ -560,6 +584,7 @@ function mountStage(st) {
         </section>` : `
         <section class="notice"><h2>준비 중</h2><p>이 단계의 과제는 수업 진행에 맞춰 열립니다.</p></section>`}
     </main>`;
+  foldTrees($("view"));
 }
 function stageTabs(st) {
   return `<nav class="tabs" aria-label="단계">${STAGES.map((s, i) => `<a href="#/stage/${s.id}" ${s === st ? 'aria-current="page"' : ""}><span class="mono">${pad(i + 1)}</span>${esc(s.name)}</a>`).join("")}</nav>`;
@@ -576,6 +601,67 @@ function paintStage(st) {
     </a></li>`;
   }).join("");
 }
+
+/* 트리 (촉진 지도, 전환 경로) */
+const TREES = { promo: PROMO, direct: DIRECT, indirect: INDIRECT };
+const fmt = n => Number(n).toLocaleString("ko-KR");
+const numOf = (counts, n) => { const v = counts?.[n.id]; return v === "" || v == null || !Number.isFinite(Number(v)) ? null : Number(v); };
+function baseOf(counts, n) {
+  for (let p = n.parent; p; p = p.parent) { if (isCount(p)) { const v = numOf(counts, p); if (v) return v; } }
+  return null;
+}
+// 이탈 비율이 가장 큰 가지
+function diagnose(root, counts) {
+  let best = null;
+  walk(root, n => {
+    if (n.kind !== "drop") return;
+    const v = numOf(counts, n), b = baseOf(counts, n);
+    if (v == null || !b) return;
+    const rate = v / b;
+    if (!best || rate > best.rate) best = { node: n, rate };
+  });
+  return best;
+}
+function actionsOf(n) {
+  const out = [];
+  walk(n, x => { if (x.kind === "act" && x !== n) out.push(x.kind === "act" && x.parent?.kind === "act" ? `${x.parent.t} · ${x.t}` : x.t); });
+  return out.filter((a, i, arr) => !arr.some((b, j) => j !== i && b.startsWith(a + " · ")));
+}
+function treeHtml(root, o = {}) {
+  const on = new Set(), hot = new Set();
+  if (o.picks) { const ids = new Set(o.picks); walk(root, n => { if (ids.has(n.id)) for (let p = n; p; p = p.parent) on.add(p.id); }); }
+  if (o.hot) { for (let p = o.hot; p; p = p.parent) hot.add(p.id); walk(o.hot, n => hot.add(n.id)); }
+  const label = n => `<span class="tl">${esc(n.t)}${n.en ? `<small>(${esc(n.en)})</small>` : ""}</span>`;
+  const node = n => {
+    const kids = n.c || [];
+    let box;
+    if (o.mode === "pick" && !kids.length && n.depth > 0) box = `<label class="tn pick"><input type="checkbox" name="${o.k}" value="${n.id}">${label(n)}</label>`;
+    else if (o.mode === "count" && isCount(n)) box = `<label class="tn cnt">${label(n)}<input type="number" name="${o.k}.${n.id}" min="0" step="1" inputmode="numeric" placeholder="숫자" aria-label="${esc(n.t)} 수"></label>`;
+    else if (o.mode === "view" && o.counts && isCount(n) && numOf(o.counts, n) != null) {
+      const v = numOf(o.counts, n), b = baseOf(o.counts, n);
+      box = `<span class="tn">${label(n)}<b class="tv">${fmt(v)}${b ? `<em>${(v / b * 100).toFixed(1)}%</em>` : ""}</b></span>`;
+    } else box = `<span class="tn">${label(n)}</span>`;
+    const cls = [`d${Math.min(n.depth, 2)}`, n.kind ? `k-${n.kind}` : "", on.has(n.id) ? "on" : "", hot.has(n.id) ? "hot" : "", kids.length ? "has" : ""].filter(Boolean).join(" ");
+    const tg = kids.length && n.depth > 0 ? `<button type="button" class="tg" aria-label="하위 항목 펼치기"></button>` : "";
+    return `<li class="${cls}"><div class="tnw">${box}${tg}${n.depth === 0 && n.note ? `<p class="tnote">${esc(n.note)}</p>` : ""}</div>${kids.length ? `<ul>${kids.map(node).join("")}</ul>` : ""}</li>`;
+  };
+  const dim = o.picks ? " dim" : "";
+  return `<div class="tree-wrap"><ul class="tree${dim}${o.mode === "pick" || o.mode === "count" ? " form" : ""}">${node(root)}</ul></div>`;
+}
+// 모바일: 1단계 아래는 접어 두고 눌러 펼침 (선택 · 강조된 가지는 펼침)
+function foldTrees(scope) {
+  scope.querySelectorAll(".tree li.has:not(.d0)").forEach(li => {
+    if (!li.classList.contains("on") && !li.classList.contains("hot")) li.classList.add("shut");
+    li.querySelector(":scope > .tnw > .tg")?.setAttribute("aria-expanded", String(!li.classList.contains("shut")));
+  });
+}
+document.addEventListener("click", e => {
+  const tg = e.target.closest(".tree .tg");
+  if (!tg) return;
+  const li = tg.closest("li");
+  li.classList.toggle("shut");
+  tg.setAttribute("aria-expanded", String(!li.classList.contains("shut")));
+});
 
 /* 과제 페이지 */
 function mountTask(st, index) {
@@ -616,6 +702,7 @@ function mountTask(st, index) {
         ${next ? `<a class="nx" href="#/stage/${st.id}/${index + 2}"><span><span class="mono muted">다음</span>${esc(next.title)}</span>${icon("right")}</a>` : `<a class="nx" href="#/"><span><span class="mono muted">완료</span>대시보드</span>${icon("right")}</a>`}
       </nav>
     </main>`;
+  foldTrees($("view"));
   const f = $("rform");
   if (f) {
     f.addEventListener("input", () => { f.dataset.dirty = "1"; });
@@ -682,6 +769,9 @@ function inputHtml(f, name) {
   return `<input name="${name}" type="text" maxlength="300"${ph}>`;
 }
 function fieldHtml(f) {
+  if (f.type === "tree-pick" || f.type === "tree-count") {
+    return `<fieldset class="ftree"><legend class="mono">${esc(f.label)}</legend>${treeHtml(TREES[f.tree], { mode: f.type === "tree-pick" ? "pick" : "count", k: f.k })}</fieldset>`;
+  }
   if (f.type === "grid") {
     return `<fieldset class="fgrid"><legend class="mono">${esc(f.label)}</legend>
       <div class="gtable" style="--cols:${f.cols.length}">
@@ -705,7 +795,9 @@ function collectForm(form, t) {
   };
   const out = {};
   for (const f of t.fields) {
-    if (f.type === "grid") out[f.k] = f.rows.map((_, i) => Object.fromEntries(f.cols.map(c => [c.k, val(`${f.k}.${i}.${c.k}`)])));
+    if (f.type === "tree-pick") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
+    else if (f.type === "tree-count") { out[f.k] = {}; walk(TREES[f.tree], n => { if (!isCount(n)) return; const v = val(`${f.k}.${n.id}`); out[f.k][n.id] = v === "" ? "" : Math.max(0, Math.round(Number(v)) || 0); }); }
+    else if (f.type === "grid") out[f.k] = f.rows.map((_, i) => Object.fromEntries(f.cols.map(c => [c.k, val(`${f.k}.${i}.${c.k}`)])));
     else if (f.type === "group") out[f.k] = Array.from({ length: f.count }, (_, i) => Object.fromEntries(f.fields.map(x => [x.k, val(`${f.k}.${i}.${x.k}`, x.type)])));
     else out[f.k] = val(f.k, f.type);
   }
@@ -714,7 +806,9 @@ function collectForm(form, t) {
 function fillForm(form, t, r) {
   const set = (name, v) => { const e = form.elements.namedItem(name); if (e) e.value = v ?? ""; };
   for (const f of t.fields) {
-    if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k])));
+    if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
+    else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id]); });
+    else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k])));
     else if (f.type === "group") Array.from({ length: f.count }).forEach((_, i) => f.fields.forEach(x => set(`${f.k}.${i}.${x.k}`, r[f.k]?.[i]?.[x.k] ?? (x.k === "name" && f.names ? (i === 0 ? (me()?.name || "나") : defaultRival(i)) : ""))));
     else set(f.k, r[f.k]);
   }

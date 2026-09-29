@@ -48,6 +48,7 @@
     overflow-wrap: anywhere;
     -webkit-font-smoothing: antialiased;
   }
+  html { overflow-anchor: none; }
   a { color: inherit; text-decoration: none; }
   button { font: inherit; color: inherit; }
   [hidden] { display: none !important; }
@@ -64,7 +65,7 @@
     -webkit-backdrop-filter: saturate(180%) blur(12px); backdrop-filter: saturate(180%) blur(12px);
   }
   .brand { display: flex; align-items: center; gap: 16px; min-width: 0; flex-shrink: 0; }
-  .brand img { display: block; height: 32px; width: auto; }
+  .brand img { display: block; height: 42px; width: auto; }
   .brand .course { display: flex; flex-direction: column; gap: 2px; padding-left: 16px; border-left: 1px solid var(--rule); white-space: nowrap; font-family: var(--sans); font-size: 18px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; text-transform: none; color: var(--ink); }
   .brand .course b { font-weight: 800; color: var(--signal); }
   .brand .course small { font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--ink-3); }
@@ -87,7 +88,8 @@
   @media (max-width: 480px) {
     .topbar { gap: 10px; }
     .topbar nav { gap: 12px; }
-    .topbar .brand img { width: 30px; height: 30px; object-fit: cover; object-position: left center; }
+    .page .topbar nav { gap: 10px; }
+    .topbar .brand img { width: 36px; height: 36px; object-fit: cover; object-position: left center; }
   }
   .topbar nav button.link[data-act="login"]:hover { color: #fff; background: var(--signal-dark); border-color: var(--signal-dark); }
 
@@ -609,7 +611,7 @@
     .roster .r { grid-template-columns: minmax(0, 1fr) 48px; gap: 10px 12px; }
     .roster .r .rate { grid-column: 1 / -1; grid-row: 2; }
     .roster .go { display: none; }
-    .brand img { height: 26px; }
+    .brand img { height: 34px; }
   }
 
   @media (max-width: 1024px) {
@@ -664,6 +666,84 @@
     .qS, .qW, .qO, .qT { grid-row: auto; grid-column: auto; }
     .q { min-height: 0; }
     .position { font-size: var(--fs-h3); }
+  }
+
+  /* 트리 (촉진 지도, 전환 경로) */
+  .tree-block + .tree-block { margin-top: clamp(32px, 5vw, 56px); }
+  .tree-block h3 { margin: 0 0 12px; font-size: var(--fs-h3); letter-spacing: -0.02em; }
+  .tree-wrap { overflow-x: auto; padding: 4px 2px 12px; scrollbar-width: thin; }
+  .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+  .tree { display: inline-flex; min-width: max-content; }
+  .tree li { position: relative; display: flex; align-items: center; }
+  .tree ul { position: relative; display: flex; flex-direction: column; padding-left: 16px; }
+  .tree ul::before { content: ""; position: absolute; left: 0; top: 50%; width: 16px; border-top: 1px solid var(--line); }
+  .tree ul > li { padding: 3px 0 3px 16px; }
+  .tree ul > li::before { content: ""; position: absolute; left: 0; top: 50%; width: 16px; border-top: 1px solid var(--line); }
+  .tree ul > li::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+  .tree ul > li:first-child::after { top: 50%; }
+  .tree ul > li:last-child::after { bottom: 50%; }
+  .tree ul > li:only-child::after { display: none; }
+  .tnw { display: grid; justify-items: center; gap: 6px; flex: none; }
+  .tn { display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; font-size: 14px; line-height: 1.3; white-space: nowrap; color: var(--ink); border: 1px solid transparent; border-radius: var(--r-sm); }
+  .tl { display: grid; justify-items: center; text-align: center; }
+  .tl small { font-size: 12px; color: var(--ink-3); }
+  .tnote { margin: 0; max-width: 220px; font-size: 13px; text-align: center; color: var(--ink-2); }
+  .tree li.d0 > .tnw > .tn { padding: 12px 20px; font-size: 16px; font-weight: 700; color: #fff; background: var(--signal); border-radius: var(--r); }
+  .tree li.d0 > .tnw > .tn small { color: rgba(255,255,255,.8); }
+  .tree li.d1 > .tnw > .tn { min-width: 150px; justify-content: center; padding: 10px 16px; font-weight: 700; background: var(--paper); border-color: var(--ink-2); border-radius: var(--r); }
+  .tree li.k-act > .tnw > .tn { color: var(--signal); font-weight: 600; }
+  .tree li.k-via > .tnw > .tn { color: var(--ink-2); }
+  .tv { font-weight: 700; font-size: 14px; color: var(--ink); }
+  .tv em { margin-left: 6px; font-style: normal; font-weight: 500; font-size: 12px; color: var(--ink-3); }
+  .tree li.d0 > .tnw .tv, .tree li.d0 > .tnw .tv em { color: #fff; }
+  .tg { display: none; }
+  /* 입력: 체크 */
+  .tn.pick { cursor: pointer; background: var(--paper); border-color: var(--line); transition: border-color .15s, background-color .15s, color .15s; }
+  .tn.pick:hover { border-color: var(--signal); }
+  .tree input[type="checkbox"] { width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; flex: none; -webkit-appearance: auto; appearance: auto; accent-color: var(--signal); box-shadow: none; }
+  .tn.pick:has(input:checked) { color: var(--signal); font-weight: 700; border-color: var(--signal); background: color-mix(in srgb, var(--signal) 7%, var(--paper)); }
+  /* 입력: 숫자 */
+  .tn.cnt { background: var(--paper); border-color: var(--rule); }
+  .tn.cnt input { width: 96px; min-height: 36px; padding: 6px 10px; font-size: 14px; text-align: right; }
+  .tree li.d0 > .tnw > .tn.cnt input, .tree li.d1 > .tnw > .tn.cnt input { color: var(--ink); }
+  /* 보기: 선택 경로 · 이탈 경로 강조 */
+  .tree.dim li:not(.on) > .tnw > .tn { opacity: .38; }
+  .tree.dim li.d0 > .tnw > .tn { opacity: 1; }
+  .tree.dim li.on:not(.d0):not(.d1) > .tnw > .tn { color: var(--signal); font-weight: 700; background: color-mix(in srgb, var(--signal) 7%, var(--paper)); border-color: var(--signal); }
+  .tree.dim li.d1.on > .tnw > .tn { color: #fff; background: var(--ink); border-color: var(--ink); }
+  .tree.dim li.on::before, .tree li.hot::before { border-top-color: var(--signal); border-top-width: 2px; }
+  .tree li.hot:not(.d0) > .tnw > .tn { background: color-mix(in srgb, var(--signal) 9%, var(--paper)); border-color: var(--signal); }
+  .tree li.hot.k-act > .tnw > .tn { color: var(--signal); }
+  .picked { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .picked span { display: grid; gap: 2px; padding: 8px 12px; font-weight: 700; color: var(--signal); background: color-mix(in srgb, var(--signal) 7%, var(--paper)); border: 1px solid color-mix(in srgb, var(--signal) 30%, var(--paper)); border-radius: var(--r); }
+  .picked small { font-size: 12px; font-weight: 500; color: var(--ink-3); }
+  .diag { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 32px; margin-bottom: 20px; padding: clamp(16px, 2.4vw, 24px); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .dg-main { display: grid; gap: 6px; align-content: start; }
+  .dg-main h4 { margin: 0; font-size: var(--fs-h3); letter-spacing: -0.02em; }
+  .dg-rate { font-size: var(--fs-num); line-height: 1.1; color: var(--signal); letter-spacing: -0.02em; }
+  .dg-acts ul { margin: 8px 0 0; padding-left: 18px; }
+  .dg-acts li { margin: 2px 0; font-weight: 600; }
+  @media (max-width: 640px) {
+    .tree-wrap { overflow: visible; padding: 0; }
+    .tree { display: block; min-width: 0; }
+    .tree li { display: block; }
+    .tree ul { display: block; margin-left: 10px; padding-left: 0; border-left: 1px solid var(--line); }
+    .tree ul::before, .tree ul > li::after { display: none; }
+    .tree ul > li { padding: 4px 0 4px 16px; }
+    .tree ul > li::before { top: 22px; width: 12px; }
+    .tree li.shut > ul { display: none; }
+    .tnw { display: flex; justify-items: start; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tn { white-space: normal; }
+    .tl { justify-items: start; text-align: left; }
+    .tnote { text-align: left; flex-basis: 100%; }
+    .tree li.d1 > .tnw > .tn { min-width: 0; }
+    .tg { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; cursor: pointer; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-sm); }
+    .tg::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--ink-2); border-bottom: 1.5px solid var(--ink-2); transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
+    .tg[aria-expanded="false"]::before { transform: translateX(-2px) rotate(-45deg); }
+    .diag { grid-template-columns: minmax(0, 1fr); }
+    .tn.cnt { flex-wrap: wrap; }
+    .tree li:not(.d0) > .tnw { flex-wrap: nowrap; }
+    .tree li:not(.d0) > .tnw > .tn { min-width: 0; }
   }
 </style>
 </head>
