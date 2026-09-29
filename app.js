@@ -261,6 +261,7 @@ function pointsHtml(points) {
 
 /* 대시보드 */
 let dashAnim = false, dashObserver = null;
+const dashTab = {};
 function mountDashboard(uid) {
   dashAnim = true;
   const mine = uid === app.user?.uid;
@@ -270,9 +271,9 @@ function mountDashboard(uid) {
       <div>${mine || uid === "case" ? "" : backLink("#/class", "전체보기")}<h1 id="headline"></h1></div>
       ${side}
     </header>
-    <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
     <div class="stats" id="stats"></div>
     <div id="oneline"></div>
+    <nav class="dash-tabs" aria-label="과정 단계"><ol class="flow" id="flow" role="tablist"></ol></nav>
     <main id="board"></main>`;
 }
 function paintDashboard(uid) {
@@ -286,20 +287,28 @@ function paintDashboard(uid) {
   $("facts").innerHTML = (data.facts || [["학과", data.dept], ["학번", data.sid]]).map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
   if (mine && app.loaded && !data.name) { location.replace("#/profile"); return; }
 
+  const tasks = allTasks();
+  const next = tasks.find(x => !taskDone(data, x.stage, x.task));
+  if (!stageOf(dashTab[uid])) dashTab[uid] = STAGES[0].id;
   $("flow").innerHTML = STAGES.map((st, i) => {
     const p = stageProgress(data, st);
     const label = st.tasks.length ? `${p.done} / ${p.total}` : "준비 중";
-    return `<li><a class="cell" href="${mine ? `#/stage/${st.id}` : `#dash-${st.id}`}" ${mine ? "" : `data-scroll="dash-${st.id}"`}>
-      <span class="idx mono"><span>${pad(i + 1)}</span><span class="arrow">${icon(mine ? "right" : "down")}</span></span>
+    const on = dashTab[uid] === st.id;
+    return `<li><button type="button" class="cell" role="tab" aria-selected="${on}" aria-controls="board" data-tab="${st.id}">
+      <span class="idx mono"><span>${pad(i + 1)}</span></span>
       <span class="name">${esc(st.name)}</span>
       <span class="rate">${bar(p.done, p.total)}<span class="label mono"><span>${label}</span><span>${st.tasks.length ? Math.round(p.done / p.total * 100) + "%" : ""}</span></span></span>
-    </a></li>`;
+    </button></li>`;
   }).join("");
-  $("flow").querySelectorAll("[data-scroll]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); $(a.dataset.scroll)?.scrollIntoView({ behavior: "smooth" }); }));
+  $("flow").querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
+    dashTab[uid] = b.dataset.tab;
+    $("flow").querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+    paintBoard(uid, data, mine);
+    if ($("view").classList.contains("anim")) revealBoard();
+    else if (!reduceMotion()) $("board").firstElementChild?.classList.add("tabin");
+  }));
 
-  const tasks = allTasks();
   const done = tasks.filter(x => taskDone(data, x.stage, x.task)).length;
-  const next = tasks.find(x => !taskDone(data, x.stage, x.task));
   const nextHtml = next
     ? (mine ? `<a class="next" href="#/stage/${next.stage.id}/${next.stage.tasks.indexOf(next.task) + 1}">${esc(next.task.title)} ${icon("right")}</a>` : `<b class="next">${esc(next.task.title)}</b>`)
     : `<b>완료</b>`;
@@ -309,8 +318,15 @@ function paintDashboard(uid) {
 
   const sm = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "summary"));
   $("oneline").innerHTML = hasValue(sm) ? `<p class="oneline">${uid === "case" ? esc(data.name) + josa(data.name, "은", "는") : "나는"} <b>${esc(sm.target || "[타깃]")}</b>에게 <b>${esc(sm.value || "[가치]")}</b>${josa(sm.value || "가치", "을", "를")} <b>${esc(sm.channel || "[채널]")}</b>${josa(sm.channel || "채널", "으로", "로")} 전달해 <b>${esc(sm.stage || "[단계]")}</b> 단계를 공략한다</p>` : "";
-  $("board").innerHTML = STAGES.map((st, i) => `
-    <section class="dash-stage" id="dash-${st.id}">
+  paintBoard(uid, data, mine);
+  animateDashboard(Boolean(s));
+}
+
+function paintBoard(uid, data, mine) {
+  const i = STAGES.findIndex(x => x.id === dashTab[uid]);
+  const st = STAGES[i];
+  $("board").innerHTML = `
+    <section class="dash-stage" id="dash-${st.id}" role="tabpanel">
       <div class="dash-head">
         <span class="stage-num">${pad(i + 1)}</span>
         <div><h2>${esc(st.name)}</h2><p>${esc(st.desc)}</p></div>
@@ -319,10 +335,8 @@ function paintDashboard(uid) {
       ${st.tasks.filter(t => taskDone(data, st, t)).map(t => dashTask(data, st, t, st.tasks.indexOf(t), mine)).join("")}
       ${todoHtml(data, st, mine)}
       ${st.tasks.length ? "" : `<p class="empty mono">준비 중</p>`}
-    </section>`).join("") + sourcesHtml(data);
-  animateDashboard(Boolean(s));
+    </section>` + sourcesHtml(data);
 }
-
 function sourcesHtml(data) {
   if (!data.sources?.length) return "";
   return `<section class="sources"><p>${esc(data.note || "")}</p><ul>${data.sources.map(([k, u]) => `<li><a href="${esc(safeUrl(u))}" target="_blank" rel="noopener noreferrer">${esc(k)} ${icon("ur")}</a></li>`).join("")}</ul></section>`;
@@ -336,7 +350,12 @@ function animateDashboard(hasData) {
   dashAnim = false;
   view.classList.add("anim");
   view.querySelectorAll("#stats b").forEach(b => countUp(b));
-  const items = view.querySelectorAll(".dash-stage, .dcard, .todo, .oneline");
+  revealBoard();
+}
+function revealBoard() {
+  const view = $("view");
+  if (!view.classList.contains("anim")) return;
+  const items = view.querySelectorAll(".dash-stage:not(.in), .dcard:not(.in), .todo:not(.in), .oneline:not(.in)");
   dashObserver?.disconnect();
   if (!("IntersectionObserver" in window)) { items.forEach(el => el.classList.add("in")); return; }
   dashObserver = new IntersectionObserver(entries => entries.forEach(en => {
