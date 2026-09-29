@@ -317,7 +317,7 @@ function paintDashboard(uid) {
     <div>${nextHtml}<span class="mono">${next ? "다음 할 일" : "전체 과제"}</span></div>`;
 
   const sm = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "summary"));
-  $("oneline").innerHTML = hasValue(sm) ? `<p class="oneline">${uid === "case" ? esc(data.name) + josa(data.name, "은", "는") : "나는"} <b>${esc(sm.target || "[타깃]")}</b>에게 <b>${esc(sm.value || "[가치]")}</b>${josa(sm.value || "가치", "을", "를")} <b>${esc(sm.channel || "[채널]")}</b>${josa(sm.channel || "채널", "으로", "로")} 전달해 <b>${esc(sm.stage || "[단계]")}</b> 단계를 공략한다</p>` : "";
+  $("oneline").innerHTML = hasValue(sm) ? `<section class="oneline"><span class="ol-label mono">한 문장 전략</span><p>${uid === "case" ? esc(data.name) + josa(data.name, "은", "는") : "나는"} <b>${esc(sm.target || "[타깃]")}</b>에게 <b>${esc(sm.value || "[가치]")}</b>${josa(sm.value || "가치", "을", "를")} <b>${esc(sm.channel || "[채널]")}</b>${josa(sm.channel || "채널", "으로", "로")} 전달해 <b class="st">${esc(sm.stage || "[단계]")}</b> 단계를 공략한다</p></section>` : "";
   paintBoard(uid, data, mine);
   animateDashboard(Boolean(s));
 }
