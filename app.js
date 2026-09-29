@@ -162,6 +162,8 @@ function route() {
   const key = routeKey(r);
   if (key !== mounted) {
     mounted = key;
+    $("view").classList.remove("anim");
+    dashObserver?.disconnect();
     if (key === "setup") mountSetup();
     else if (key === "wait") $("view").innerHTML = `<p class="empty mono">불러오는 중</p>`;
     else if (key === "gate") mountGate();
@@ -253,7 +255,9 @@ function pointsHtml(points) {
 }
 
 /* 대시보드 */
+let dashAnim = false, dashObserver = null;
 function mountDashboard(uid) {
+  dashAnim = true;
   const mine = uid === app.user?.uid;
   const side = `<div class="side"><dl class="facts" id="facts"></dl></div>`;
   $("view").innerHTML = `
@@ -311,6 +315,40 @@ function paintDashboard(uid) {
       ${todoHtml(data, st, mine)}
       ${st.tasks.length ? "" : `<p class="empty mono">준비 중</p>`}
     </section>`).join("");
+  animateDashboard(Boolean(s));
+}
+
+/* 대시보드 애니메이션: 데이터가 들어온 첫 화면에서만 재생 */
+const reduceMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+function animateDashboard(hasData) {
+  const view = $("view");
+  if (!dashAnim || !hasData || reduceMotion()) { view.classList.remove("anim"); dashObserver?.disconnect(); return; }
+  dashAnim = false;
+  view.classList.add("anim");
+  view.querySelectorAll("#stats b").forEach(b => countUp(b));
+  const items = view.querySelectorAll(".dash-stage, .dcard, .todo, .oneline");
+  dashObserver?.disconnect();
+  if (!("IntersectionObserver" in window)) { items.forEach(el => el.classList.add("in")); return; }
+  dashObserver = new IntersectionObserver(entries => entries.forEach(en => {
+    if (en.isIntersecting) { en.target.classList.add("in"); dashObserver.unobserve(en.target); }
+  }), { rootMargin: "0px 0px -8% 0px" });
+  items.forEach(el => dashObserver.observe(el));
+}
+function countUp(el) {
+  const node = [...el.childNodes].find(n => n.nodeType === 3 && /\d/.test(n.textContent));
+  if (!node) return;
+  const to = parseInt(node.textContent, 10);
+  if (!(to > 0)) return;
+  node.textContent = "0";
+  setTimeout(() => {
+    const t0 = performance.now(), dur = 1000;
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      node.textContent = String(Math.round(to * (1 - Math.pow(1 - k, 2))));
+      if (k < 1 && node.isConnected) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, 550);
 }
 function todoHtml(data, st, mine) {
   const left = st.tasks.filter(t => !taskDone(data, st, t));
