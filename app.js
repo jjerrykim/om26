@@ -1,5 +1,6 @@
 import { firebaseConfig } from "./firebase-config.js";
 import { STAGES } from "./guide.js";
+import { CASE } from "./case.js";
 
 const FB = "https://www.gstatic.com/firebasejs/10.14.1";
 
@@ -142,6 +143,7 @@ function currentRoute() {
   if (parts[0] === "class") return { name: "class" };
   if (parts[0] === "profile") return { name: "profile" };
   if (parts[0] === "import") return { name: "import" };
+  if (parts[0] === "case") return { name: "case" };
   return { name: "home" };
 }
 function routeKey(r) {
@@ -149,6 +151,7 @@ function routeKey(r) {
   if (!app.authReady) return "wait";
   if (r.name === "stage") return "stage:" + r.stage.id;
   if (r.name === "task") return `task:${r.stage.id}:${r.index}`;
+  if (r.name === "case") return "dash:case";
   if (!app.user) return "gate";
   if (r.name === "student") return r.uid === app.user.uid ? "dash:" + r.uid : "dash:" + r.uid;
   if (r.name === "class") return "class";
@@ -189,8 +192,9 @@ window.addEventListener("hashchange", route);
 /* 상단 메뉴 */
 function renderNav(r) {
   if (!configured) { $("nav").innerHTML = ""; return; }
+  const caseLink = `<a class="link" href="#/case" ${r.name === "case" ? 'aria-current="page"' : ""}>케이스예시</a>`;
   if (!app.user) {
-    $("nav").innerHTML = app.authReady ? `<button class="link mono" type="button" data-act="login">로그인</button>` : "";
+    $("nav").innerHTML = app.authReady ? `${caseLink}<button class="link mono" type="button" data-act="login">로그인</button>` : "";
     return;
   }
   const dash = r.name === "home" || (r.name === "student" && r.uid === app.user.uid);
@@ -198,6 +202,7 @@ function renderNav(r) {
     <a class="link" href="#/" ${dash ? 'aria-current="page"' : ""}>대시보드</a>
     <a class="link" href="#/class" ${r.name === "class" || (r.name === "student" && !dash) ? 'aria-current="page"' : ""}>전체보기</a>
     <a class="link" href="#/profile" ${r.name === "profile" ? 'aria-current="page"' : ""}>내정보</a>
+    ${caseLink}
     <button class="link mono hide-sm" type="button" data-act="logout">로그아웃</button>`;
 }
 document.addEventListener("click", e => {
@@ -262,7 +267,7 @@ function mountDashboard(uid) {
   const side = `<div class="side"><dl class="facts" id="facts"></dl></div>`;
   $("view").innerHTML = `
     <header class="intro">
-      <div>${mine ? "" : backLink("#/class", "전체보기")}<h1 id="headline"></h1></div>
+      <div>${mine || uid === "case" ? "" : backLink("#/class", "전체보기")}<h1 id="headline"></h1></div>
       ${side}
     </header>
     <nav aria-label="과정 흐름"><ol class="flow" id="flow"></ol></nav>
@@ -272,13 +277,13 @@ function mountDashboard(uid) {
 }
 function paintDashboard(uid) {
   const mine = uid === app.user?.uid;
-  const s = app.students.get(uid);
+  const s = uid === "case" ? CASE : app.students.get(uid);
   if (!s && !mine) { $("headline").innerHTML = app.loaded ? "학생을 찾을 수 없습니다" : "불러오는 중"; return; }
   const data = s || {};
-  $("headline").innerHTML = `${esc(data.name || "이름")}<span class="sub">학습 대시보드</span>`;
+  $("headline").innerHTML = `${esc(data.name || "이름")}<span class="sub">${uid === "case" ? "케이스 예시" : "학습 대시보드"}</span>`;
   document.title = data.name ? `${data.name} | 온라인마케팅실전` : "온라인마케팅실전 학습 포트폴리오";
 
-  $("facts").innerHTML = [["학과", data.dept], ["학번", data.sid]].map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
+  $("facts").innerHTML = (data.facts || [["학과", data.dept], ["학번", data.sid]]).map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
   if (mine && app.loaded && !data.name) { location.replace("#/profile"); return; }
 
   $("flow").innerHTML = STAGES.map((st, i) => {
@@ -303,7 +308,7 @@ function paintDashboard(uid) {
     <div>${nextHtml}<span class="mono">${next ? "다음 할 일" : "전체 과제"}</span></div>`;
 
   const sm = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "summary"));
-  $("oneline").innerHTML = hasValue(sm) ? `<p class="oneline">나는 <b>${esc(sm.target || "[타깃]")}</b>에게 <b>${esc(sm.value || "[가치]")}</b>${josa(sm.value || "가치", "을", "를")} <b>${esc(sm.channel || "[채널]")}</b>${josa(sm.channel || "채널", "으로", "로")} 전달해 <b>${esc(sm.stage || "[단계]")}</b> 단계를 공략한다</p>` : "";
+  $("oneline").innerHTML = hasValue(sm) ? `<p class="oneline">${uid === "case" ? esc(data.name) + josa(data.name, "은", "는") : "나는"} <b>${esc(sm.target || "[타깃]")}</b>에게 <b>${esc(sm.value || "[가치]")}</b>${josa(sm.value || "가치", "을", "를")} <b>${esc(sm.channel || "[채널]")}</b>${josa(sm.channel || "채널", "으로", "로")} 전달해 <b>${esc(sm.stage || "[단계]")}</b> 단계를 공략한다</p>` : "";
   $("board").innerHTML = STAGES.map((st, i) => `
     <section class="dash-stage" id="dash-${st.id}">
       <div class="dash-head">
@@ -314,8 +319,13 @@ function paintDashboard(uid) {
       ${st.tasks.filter(t => taskDone(data, st, t)).map(t => dashTask(data, st, t, st.tasks.indexOf(t), mine)).join("")}
       ${todoHtml(data, st, mine)}
       ${st.tasks.length ? "" : `<p class="empty mono">준비 중</p>`}
-    </section>`).join("");
+    </section>`).join("") + sourcesHtml(data);
   animateDashboard(Boolean(s));
+}
+
+function sourcesHtml(data) {
+  if (!data.sources?.length) return "";
+  return `<section class="sources"><p>${esc(data.note || "")}</p><ul>${data.sources.map(([k, u]) => `<li><a href="${esc(safeUrl(u))}" target="_blank" rel="noopener noreferrer">${esc(k)} ${icon("ur")}</a></li>`).join("")}</ul></section>`;
 }
 
 /* 대시보드 애니메이션: 데이터가 들어온 첫 화면에서만 재생 */
