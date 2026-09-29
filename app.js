@@ -600,7 +600,7 @@ function mountTask(st, index) {
       ${t.prompt ? `<section class="sec">
         <h2 class="sec-h">프롬프트<span id="prompt-hint"></span></h2>
         <div class="prompt">
-          <button class="btn copy" type="button" data-act="copy">${icon("copy")}복사하기</button>
+          <button class="btn ghost sm copy" type="button" data-act="copy">${icon("copy")}복사하기</button>
           <pre id="prompt-body"></pre>
         </div>
       </section>` : ""}
