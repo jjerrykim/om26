@@ -145,6 +145,7 @@ function currentRoute() {
   if (parts[0] === "profile") return { name: "profile" };
   if (parts[0] === "import") return { name: "import" };
   if (parts[0] === "case") return { name: "case" };
+  if (parts[0] === "file" && parts[1] && parts[2]) return { name: "file", uid: parts[1], fid: parts[2] };
   return { name: "home" };
 }
 function routeKey(r) {
@@ -158,6 +159,7 @@ function routeKey(r) {
   if (r.name === "class") return "class";
   if (r.name === "profile") return "profile";
   if (r.name === "import") return "import";
+  if (r.name === "file") return `file:${r.uid}:${r.fid}`;
   return "dash:" + app.user.uid;
 }
 function route() {
@@ -173,6 +175,7 @@ function route() {
     else if (key === "gate") mountGate();
     else if (key === "class") mountClass();
     else if (key === "profile") mountProfile();
+    else if (key.startsWith("file:")) { const [, u, f] = key.split(":"); mountFile(u, f); }
     else if (key === "import") mountImport();
     else if (key.startsWith("dash:")) mountDashboard(key.slice(5));
     else if (key.startsWith("stage:")) mountStage(r.stage);
@@ -184,6 +187,7 @@ function route() {
 function paint() {
   if (mounted === "class") paintClass();
   else if (mounted === "profile") paintProfile();
+  else if (mounted.startsWith("file:")) { const [, u, f] = mounted.split(":"); paintFile(u, f); }
   else if (mounted.startsWith("dash:")) paintDashboard(mounted.slice(5));
   else if (mounted.startsWith("stage:")) paintStage(stageOf(mounted.slice(6)));
   else if (mounted.startsWith("task:")) { const [, sid, i] = mounted.split(":"); paintTask(stageOf(sid), +i); }
@@ -333,7 +337,7 @@ function paintBoard(uid, data, mine) {
         <div><h2>${esc(st.name)}</h2><p>${esc(st.desc)}</p></div>
         ${mine ? `<a class="more mono" href="#/stage/${st.id}">열기 ${icon("right")}</a>` : ""}
       </div>
-      ${st.tasks.filter(t => taskDone(data, st, t)).map(t => dashTask(data, st, t, st.tasks.indexOf(t), mine)).join("")}
+      ${st.tasks.filter(t => taskDone(data, st, t) || hasFiles(data, st, t)).map(t => dashTask(data, st, t, st.tasks.indexOf(t), mine)).join("")}
       ${todoHtml(data, st, mine)}
       ${st.tasks.length ? "" : `<p class="empty mono">준비 중</p>`}
     </section>` + sourcesHtml(data);
@@ -382,7 +386,7 @@ function countUp(el) {
   }, 550);
 }
 function todoHtml(data, st, mine) {
-  const left = st.tasks.filter(t => !taskDone(data, st, t));
+  const left = st.tasks.filter(t => !taskDone(data, st, t) && !hasFiles(data, st, t));
   if (!left.length) return "";
   return `<div class="todo"><span class="mono muted">${left.length === st.tasks.length ? "아직 작성한 과제 없음" : "남은 과제"}</span>${left.map(t => mine
     ? `<a href="#/stage/${st.id}/${st.tasks.indexOf(t) + 1}">${esc(t.title)}${icon("right")}</a>`
@@ -391,8 +395,10 @@ function todoHtml(data, st, mine) {
 function dashTask(data, st, t, j, mine) {
   const r = resultOf(data, st, t);
   const head = `<div class="dcard-head"><h3><span class="tnum">${pad(j + 1)}</span>${esc(t.id === "summary" ? "기획서 점검" : t.title)}</h3>${mine ? `<a class="more mono" href="#/stage/${st.id}/${j + 1}">${hasValue(r) ? "수정" : "작성하기"} ${icon("right")}</a>` : ""}</div>`;
-  if (!hasValue(r)) return `<div class="dcard is-empty">${head}<p class="empty-line mono">아직 작성하지 않았습니다</p></div>`;
-  return `<div class="dcard">${head}${renderResult(data, st, t, r)}</div>`;
+  const fl = t.files ? filesHtml(uidOf(data), data, taskKey(st, t), false) : "";
+  const files = fl ? `<div class="dfiles"><span class="mono muted">연습 파일</span>${fl}</div>` : "";
+  if (!hasValue(r)) return `<div class="dcard${files ? "" : " is-empty"}">${head}${files || `<p class="empty-line mono">아직 작성하지 않았습니다</p>`}</div>`;
+  return `<div class="dcard">${head}${renderResult(data, st, t, r)}${files}</div>`;
 }
 const lines = v => esc(v || "").split("\n").filter(Boolean).map(l => `<li>${l}</li>`).join("");
 const cell = v => v ? nl(v) : `<span class="muted">-</span>`;
@@ -473,24 +479,58 @@ function renderResult(data, st, t, r) {
     }
     case "summary":
       return checklistHtml(data);
-    case "stack":
-      return `<div class="stack">${[["화면", "프론트엔드", r.front], ["처리", "백엔드", r.backend], ["공개", "배포", r.deploy]].map(([k, en, v]) => `
+    case "stack": {
+      const rows = [["프론트엔드", "Frontend", r.front], ["백엔드 · DB", "Backend", r.db], ["예약 · 결제", "Booking", r.booking], ["배포", "Deploy", r.deploy], ["도메인", "Domain", r.domain]];
+      return `<div class="stack">${rows.map(([k, en, v]) => `
         <div class="layer"><span class="mono muted">${en}</span><h4>${k}</h4><p>${cell(v)}</p></div>`).join("")}</div>
-        ${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}`;
+        ${r.backend || r.why ? `<div class="grid2">${r.backend ? `<p class="dnote"><span class="mono muted">홈페이지 기능</span>${cell(r.backend)}</p>` : ""}${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}</div>` : ""}`;
+    }
     case "landing": {
-      const color = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(r.color || "").trim()) ? r.color.trim() : "var(--signal)";
-      const secs = String(r.sections || "").split("/").map(x => x.trim()).filter(Boolean);
-      return `<div class="wire" style="--brand:${esc(color)}">
+      const it = resultOf(data, st, st.tasks.find(x => x.id === "iterate")) || {};
+      const hex = v => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(v || "").trim()) ? String(v).trim() : "";
+      const color = hex(it.color) || hex(r.color) || "var(--signal)";
+      const plan = (r.plan || []).filter(hasValue);
+      const secs = plan.length ? plan.map(x => x.sec || "섹션") : String(r.sections || "").split("/").map(x => x.trim()).filter(Boolean);
+      const link = safeUrl(r.ctaLink);
+      return `<div class="land">
+        <div class="wire" style="--brand:${esc(color)}">
           <div class="wbar"><span class="wlogo"></span><span class="wmenu"><i></i><i></i><i></i></span></div>
           <div class="whero"><h4>${cell(r.hero)}</h4>${r.sub ? `<p>${esc(r.sub)}</p>` : ""}${r.cta ? `<span class="wcta">${esc(r.cta)}</span>` : ""}</div>
           ${secs.length ? `<div class="wsecs">${secs.map(x => `<span>${esc(x)}</span>`).join("")}</div>` : ""}
-        </div>`;
+        </div>
+        <div class="land-meta">
+          ${r.stage ? `<p class="dnote"><span class="mono muted">담당 고객여정 단계</span>${esc(r.stage)}</p>` : ""}
+          ${r.cta ? `<p class="dnote"><span class="mono muted">주 CTA</span>${esc(r.cta)}${link ? ` <a class="more mono" href="${esc(link)}" target="_blank" rel="noopener noreferrer">연결 확인 ${icon("ur")}</a>` : ""}</p>` : ""}
+        </div>
+      </div>
+      ${plan.length ? `<div class="tbl-wrap"><table class="tbl ptbl"><thead><tr><th>순서</th><th>섹션</th><th>해소하는 불안</th><th>근거</th></tr></thead><tbody>${plan.map((x, i) => `<tr><td class="mono">${pad(i + 1)}</td><th>${esc(x.sec || "-")}</th><td>${esc(x.worry || "-")}</td><td class="${x.basis ? "" : "muted"}">${esc(x.basis || "근거 없음")}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
     }
     case "iterate": {
       const log = (r.log || []).filter(hasValue);
       const u = safeUrl(r.preview);
-      return `${log.length ? `<ol class="iter">${log.map((l, i) => `<li><span class="tnum">${i + 1}</span><div><p class="ask">${cell(l.ask)}</p>${l.result ? `<p class="res">${esc(l.result)}</p>` : ""}</div></li>`).join("")}</ol>` : ""}
-        ${u ? `<a class="more mono" href="${esc(u)}" target="_blank" rel="noopener noreferrer">미리보기 열기 ${icon("ur")}</a>` : ""}`;
+      const hex = v => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(v || "").trim()) ? String(v).trim() : "";
+      const sw = [["주 색상", r.color], ["강조색", r.accent]].filter(([, v]) => v);
+      return `${sw.length || r.mood || r.font ? `<div class="design">
+          ${sw.map(([k, v]) => `<div class="sw"><i style="background:${esc(hex(v) || "transparent")}"></i><span class="mono muted">${k}</span><b>${esc(v)}</b></div>`).join("")}
+          ${r.mood ? `<div class="sw"><span class="mono muted">분위기</span><b>${esc(r.mood)}</b></div>` : ""}
+          ${r.font ? `<div class="sw"><span class="mono muted">글꼴</span><b>${esc(r.font)}</b></div>` : ""}
+        </div>` : ""}
+        ${log.length ? `<ol class="iter">${log.map((l, i) => `<li><span class="tnum">${i + 1}</span><div><p class="ask">${cell(l.ask)}</p>${l.result ? `<p class="res">${esc(l.result)}</p>` : ""}</div></li>`).join("")}</ol>` : ""}
+        ${u ? `<a class="more mono" href="${esc(u)}" target="_blank" rel="noopener noreferrer">공유 링크 열기 ${icon("ur")}</a>` : ""}`;
+    }
+    case "inquiry": {
+      const f = t.fields.find(x => x.k === "done");
+      return `<ol class="flowline">${[["내 홈페이지", "문의폼 입력"], ["publishable 키", "공개용 키만"], ["Supabase API", "RLS 규칙 확인"], ["inquiries 표", "한 줄 저장"], ["대시보드", "Table Editor"]].map(([k, v]) => `<li><b>${k}</b><span>${v}</span></li>`).join("")}</ol>
+        ${checksHtml(f.options, r.done)}
+        ${r.error ? `<p class="dnote"><span class="mono muted">막힌 오류와 해결</span>${cell(r.error)}</p>` : ""}`;
+    }
+    case "review": {
+      const f = t.fields.find(x => x.k === "safe");
+      const pos = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "stp"))?.position;
+      return `${checksHtml(f.options, r.safe)}
+        ${r.five ? `<div class="grid2"><p class="dnote"><span class="mono muted">5초 한 문장 (AI가 본 첫 화면)</span>${cell(r.five)}</p><p class="dnote"><span class="mono muted">내 포지셔닝 문장</span>${cell(pos)}</p></div>` : ""}
+        ${r.hesitate ? `<div class="diff light"><span class="mono">망설이는 지점</span>${ul(r.hesitate)}</div>` : ""}
+        ${r.only ? `<p class="dnote"><span class="mono muted">이 페이지에서만 볼 수 있는 내용</span>${cell(r.only)}</p>` : ""}`;
     }
     case "deploy": {
       const u = safeUrl(r.url);
@@ -522,6 +562,11 @@ function renderResult(data, st, t, r) {
     default:
       return `<dl class="dl7">${t.fields.map(f => `<div><dt>${esc(f.label)}</dt><dd>${cell(typeof r[f.k] === "string" ? r[f.k] : "")}</dd></div>`).join("")}</dl>`;
   }
+}
+function checksHtml(options, done) {
+  const on = new Set(done || []);
+  const n = options.filter(o => on.has(o)).length;
+  return `<div class="checkbar"><span class="mono">${n} / ${options.length} 확인</span>${bar(n, options.length)}</div><ul class="checks">${options.map(o => `<li class="${on.has(o) ? "ok" : ""}"><span class="box">${on.has(o) ? icon("check") : ""}</span>${esc(o)}</li>`).join("")}</ul>`;
 }
 function checklistHtml(data) {
   const st = stageOf("strategy");
@@ -690,6 +735,14 @@ function mountTask(st, index) {
           <pre id="prompt-body"></pre>
         </div>
       </section>` : ""}
+      ${t.files ? `<section class="sec">
+        <h2 class="sec-h">연습 파일<span>만든 index.html 등을 올리면 대시보드에서 누구나 열어 볼 수 있습니다</span></h2>
+        ${app.user ? `<div class="files" id="files"></div>
+        <form class="upform" id="upform">
+          <label class="upbox"><input type="file" name="up" multiple accept=".html,.htm,.css,.js,.txt,.md,.json,text/html,text/css,text/javascript,text/plain"><span><b>파일 선택</b>HTML · CSS · JS · TXT, 파일당 700KB 이하</span></label>
+          <p class="note mono" id="upnote" role="status"></p>
+        </form>` : `<p class="muted">파일을 올리려면 로그인하세요.</p>`}
+      </section>` : ""}
       <section class="sec result">
         <h2 class="sec-h">결과 저장<span>확인한 내용만 적으면 대시보드에 반영됩니다</span></h2>
         ${app.user ? `<form class="rform" id="rform" autocomplete="off">
@@ -703,6 +756,8 @@ function mountTask(st, index) {
       </nav>
     </main>`;
   foldTrees($("view"));
+  $("upform")?.addEventListener("change", e => onUpload(e, st, t));
+  $("files")?.addEventListener("click", e => { const b = e.target.closest("[data-del]"); if (b) onDeleteFile(b.dataset.del); });
   const f = $("rform");
   if (f) {
     f.addEventListener("input", () => { f.dataset.dirty = "1"; });
@@ -728,11 +783,18 @@ function paintTask(st, index) {
       position: res("stp").position || "",
       target: (() => { const p = res("stp"); const i = parseInt(String(p.first || "").replace(/\D/g, ""), 10) - 1; return p.segs?.[i]?.name || ""; })(),
       home: (() => { const j = res("journey"); return j.home ? `${j.home}${j.homeWhy ? ` (${j.homeWhy})` : ""}` : ""; })(),
-      pages: res("bench").pages || ""
+      pages: res("bench").pages || "",
+      journey: (() => { const j = res("journey"); const rows = stageOf("strategy").tasks.find(x => x.id === "journey").fields[0].rows; return (j.rows || []).some(hasValue) ? rows.map((n, i) => { const v = j.rows[i] || {}; return `${n} : ${[v.act, v.ch, v.worry, v.give].map(x => x || "-").join(" / ")}`; }).join("\n") : ""; })(),
+      rivals: (() => { const r = res("rivals"); const l = (r.list || []).filter(hasValue); return l.length ? l.map(c => `${c.name || "-"} / ${c.price || "-"} / 강점 ${c.plus || "-"} / 약점 ${c.minus || "-"}`).join("\n") + (r.diff ? `\n다르게 할 지점 : ${String(r.diff).replace(/\n/g, ", ")}` : "") : ""; })(),
+      rivalnames: (() => { const n = (res("rivals").list || []).map(c => c?.name).filter(Boolean); return n.length ? n.join(" · ") : ""; })(),
+      ctalink: safeUrl(resultOf(data, stageOf("vibecoding"), stageOf("vibecoding").tasks.find(x => x.id === "landing"))?.ctaLink) || ""
     };
+    const FILL = /\{\{(summary|position|target|home|pages|journey|rivals|rivalnames|ctalink)\}\}/g;
+    const blank = { ctalink: "[실제 링크]", target: "[1순위 타깃]", rivalnames: "[경쟁사 상호 3곳]" };
     let missing = 0;
-    body = body.replace(/\{\{(summary|position|target|home|pages)\}\}/g, (_, k) => fills[k] || (missing++, `[2단계에서 작성]`));
-    if (/\{\{(summary|position|target|home|pages)\}\}/.test(t.prompt.body)) hint = missing ? `2단계 결과 중 ${missing}곳이 비어 있습니다. 해당 과제를 먼저 저장하세요` : "2단계 결과가 자동으로 들어갔습니다";
+    const used = FILL.test(t.prompt.body);
+    body = body.replace(FILL, (_, k) => fills[k] || (missing++, blank[k] || `[2단계에서 작성]`));
+    if (used) hint = missing ? `앞 과제 결과 중 ${missing}곳이 비어 있습니다. 해당 과제를 먼저 저장하거나 직접 채우세요` : "앞 과제 결과가 자동으로 들어갔습니다";
     if (body.includes("{{urls}}")) {
       const r = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "bench"));
       const urls = (r?.list || []).map(x => safeUrl(x?.url)).filter(Boolean);
@@ -742,6 +804,7 @@ function paintTask(st, index) {
     $("prompt-body").textContent = body;
     $("prompt-hint").textContent = hint;
   }
+  if ($("files")) $("files").innerHTML = filesHtml(app.user.uid, data, taskKey(st, t), true) || `<p class="empty-line mono">아직 올린 파일이 없습니다</p>`;
   const f = $("rform");
   if (f && !f.dataset.dirty && !f.contains(document.activeElement)) fillForm(f, t, resultOf(data, st, t) || {});
 }
@@ -769,6 +832,9 @@ function inputHtml(f, name) {
   return `<input name="${name}" type="text" maxlength="300"${ph}>`;
 }
 function fieldHtml(f) {
+  if (f.type === "checks") {
+    return `<fieldset class="fchecks"><legend class="mono">${esc(f.label)}</legend><div class="chkl">${f.options.map(o => `<label class="chk"><input type="checkbox" name="${f.k}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join("")}</div></fieldset>`;
+  }
   if (f.type === "tree-pick" || f.type === "tree-count") {
     return `<fieldset class="ftree"><legend class="mono">${esc(f.label)}</legend>${treeHtml(TREES[f.tree], { mode: f.type === "tree-pick" ? "pick" : "count", k: f.k })}</fieldset>`;
   }
@@ -795,7 +861,8 @@ function collectForm(form, t) {
   };
   const out = {};
   for (const f of t.fields) {
-    if (f.type === "tree-pick") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
+    if (f.type === "checks") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
+    else if (f.type === "tree-pick") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
     else if (f.type === "tree-count") { out[f.k] = {}; walk(TREES[f.tree], n => { if (!isCount(n)) return; const v = val(`${f.k}.${n.id}`); out[f.k][n.id] = v === "" ? "" : Math.max(0, Math.round(Number(v)) || 0); }); }
     else if (f.type === "grid") out[f.k] = f.rows.map((_, i) => Object.fromEntries(f.cols.map(c => [c.k, val(`${f.k}.${i}.${c.k}`)])));
     else if (f.type === "group") out[f.k] = Array.from({ length: f.count }, (_, i) => Object.fromEntries(f.fields.map(x => [x.k, val(`${f.k}.${i}.${x.k}`, x.type)])));
@@ -806,7 +873,8 @@ function collectForm(form, t) {
 function fillForm(form, t, r) {
   const set = (name, v) => { const e = form.elements.namedItem(name); if (e) e.value = v ?? ""; };
   for (const f of t.fields) {
-    if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
+    if (f.type === "checks") { const on = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = on.has(x.value); }); }
+    else if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
     else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id]); });
     else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k])));
     else if (f.type === "group") Array.from({ length: f.count }).forEach((_, i) => f.fields.forEach(x => set(`${f.k}.${i}.${x.k}`, r[f.k]?.[i]?.[x.k] ?? (x.k === "name" && f.names ? (i === 0 ? (me()?.name || "나") : defaultRival(i)) : ""))));
@@ -996,4 +1064,114 @@ if (configured) {
     $("view").innerHTML = `<section class="notice"><h2>연결하지 못했습니다</h2><p>네트워크 상태나 firebase-config.js 설정값을 확인하세요.</p></section>`;
     mounted = "error";
   });
+}
+
+/* 연습 파일: 목록은 students/{uid}.files, 내용은 students/{uid}/files/{fid} */
+const FILE_MAX = 700 * 1024;
+const uidOf = data => [...app.students].find(([, v]) => v === data)?.[0] || "";
+const filesOf = (data, key) => Object.entries(data?.files || {}).filter(([, f]) => f && f.task === key).sort((a, b) => (a[1].at || 0) - (b[1].at || 0));
+const hasFiles = (data, st, t) => Boolean(t.files) && filesOf(data, taskKey(st, t)).length > 0;
+const kb = n => n >= 1024 ? `${Math.round(n / 1024)}KB` : `${n}B`;
+function filesHtml(uid, data, key, own) {
+  const list = filesOf(data, key);
+  if (!list.length || !uid) return "";
+  return `<ul class="flist">${list.map(([id, f]) => `<li>
+    <a href="#/file/${encodeURIComponent(uid)}/${encodeURIComponent(id)}"><b>${esc(f.name)}</b><span class="mono muted">${kb(f.size || 0)}</span>${icon("right")}</a>
+    ${own ? `<button type="button" class="btn ghost sm" data-del="${esc(id)}">삭제</button>` : ""}
+  </li>`).join("")}</ul>`;
+}
+function onUpload(e, st, t) {
+  const input = e.target.closest("input[type=file]");
+  if (!input || !input.files.length) return;
+  const note = $("upnote");
+  if (!me()?.name) { flash(note, false, `먼저 <a href="#/profile">내정보</a>에서 이름을 저장하세요`); input.value = ""; return; }
+  const picked = [...input.files];
+  const bad = picked.find(f => f.size > FILE_MAX);
+  if (bad) { flash(note, false, `${esc(bad.name)} : 700KB를 넘습니다. 이미지는 파일 안에 넣지 말고 자리만 잡아 주세요`); input.value = ""; return; }
+  if (Object.keys(me().files || {}).length + picked.length > 40) { flash(note, false, "파일은 모두 40개까지 올릴 수 있습니다"); input.value = ""; return; }
+  const { db, fsMod } = app.fb;
+  const uid = app.user.uid;
+  flash(note, true, "올리는 중");
+  (async () => {
+    try {
+      for (const file of picked) {
+        const text = await file.text();
+        const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const name = file.name.slice(0, 100);
+        await fsMod.setDoc(fsMod.doc(db, "students", uid, "files", id), { name, content: text, updatedAt: fsMod.serverTimestamp() });
+        await saveMine({ files: { [id]: { name, task: taskKey(st, t), size: file.size, at: Date.now() } } });
+      }
+      flash(note, true, `${picked.length}개 올렸습니다 · 이름을 누르면 열립니다`);
+    } catch (err) {
+      flash(note, false, err?.code === "permission-denied" ? "올릴 권한이 없습니다. 교수자에게 보안 규칙 게시를 요청하세요" : "올리지 못했습니다");
+    } finally { input.value = ""; }
+  })();
+}
+async function onDeleteFile(id) {
+  const f = me()?.files?.[id];
+  if (!f || !confirm(`${f.name} 파일을 삭제할까요?`)) return;
+  const { db, fsMod } = app.fb;
+  try {
+    await fsMod.deleteDoc(fsMod.doc(db, "students", app.user.uid, "files", id));
+    await saveMine({ files: { [id]: fsMod.deleteField() } });
+  } catch { flash($("upnote"), false, "삭제하지 못했습니다"); }
+}
+const fileCache = new Map();
+function mountFile(uid, fid) {
+  $("view").innerHTML = `
+    <header class="fhead">
+      <div><a class="back mono" id="fback" href="#/">${icon("left")}대시보드</a><h1 id="fname">불러오는 중</h1><p class="muted" id="fmeta"></p></div>
+      <div class="fact">
+        <div class="seg2" role="group" aria-label="화면 크기"><button type="button" class="on" data-w="pc">PC</button><button type="button" data-w="m">스마트폰</button></div>
+        <button type="button" class="btn ghost sm" id="fdown">내려받기</button>
+      </div>
+    </header>
+    <div class="fstage" id="fstage"></div>`;
+  $("view").querySelector(".seg2").addEventListener("click", e => {
+    const b = e.target.closest("[data-w]"); if (!b) return;
+    $("view").querySelectorAll(".seg2 button").forEach(x => x.classList.toggle("on", x === b));
+    $("fstage").classList.toggle("mobile", b.dataset.w === "m");
+  });
+  $("fdown").addEventListener("click", () => {
+    const c = fileCache.get(`${uid}/${fid}`); if (!c) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([c.content], { type: "text/plain;charset=utf-8" }));
+    a.download = c.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  const key = `${uid}/${fid}`;
+  if (fileCache.has(key)) { showFile(key); return; }
+  const { db, fsMod } = app.fb;
+  fsMod.getDoc(fsMod.doc(db, "students", uid, "files", fid)).then(d => {
+    if (!d.exists()) { $("fname").textContent = "파일을 찾을 수 없습니다"; return; }
+    fileCache.set(key, d.data());
+    if (mounted === `file:${uid}:${fid}`) showFile(key);
+  }).catch(() => { $("fname").textContent = "파일을 불러오지 못했습니다"; });
+}
+function showFile(key) {
+  const c = fileCache.get(key);
+  $("fname").textContent = c.name;
+  const stage = $("fstage");
+  if (/\.html?$/i.test(c.name)) {
+    const fr = document.createElement("iframe");
+    fr.title = c.name;
+    fr.setAttribute("sandbox", "allow-scripts allow-forms allow-modals allow-popups");
+    fr.setAttribute("referrerpolicy", "no-referrer");
+    fr.srcdoc = c.content;
+    stage.replaceChildren(fr);
+  } else {
+    const pre = document.createElement("pre");
+    pre.className = "fcode"; pre.textContent = c.content;
+    stage.replaceChildren(pre);
+  }
+}
+function paintFile(uid, fid) {
+  const s = app.students.get(uid);
+  const f = s?.files?.[fid];
+  const mine = uid === app.user?.uid;
+  const back = $("fback");
+  if (back) { back.href = mine ? "#/" : `#/s/${encodeURIComponent(uid)}`; back.lastChild.textContent = mine ? "대시보드" : `${s?.name || ""} 대시보드`; }
+  if (f && $("fmeta")) {
+    const t = allTasks().find(x => taskKey(x.stage, x.task) === f.task);
+    $("fmeta").textContent = [s?.name, t?.task.title, kb(f.size || 0)].filter(Boolean).join(" · ");
+  }
 }
