@@ -75,6 +75,9 @@ function businessText(s) {
 const app = { fb: null, user: null, authReady: false, students: new Map(), loaded: false, error: "" };
 const configured = Boolean(firebaseConfig?.apiKey && firebaseConfig?.projectId && !/^YOUR/i.test(firebaseConfig.apiKey));
 const me = () => (app.user ? app.students.get(app.user.uid) : null);
+// 교수자 계정: 전체보기에서 연습 파일 일괄 내려받기
+const ADMIN_EMAILS = ["kimky@kmu.ac.kr", "jjerry.kim@gmail.com"];
+const isAdmin = () => ADMIN_EMAILS.includes(String(app.user?.email || "").toLowerCase());
 
 /* Firebase */
 let unsubscribe = null;
@@ -1020,10 +1023,14 @@ function mountClass() {
   $("view").innerHTML = `
     <header class="class-head">
       <div><h1>전체보기</h1><p class="mono muted" id="class-sum"></p></div>
-      <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
+      <div class="class-tools">
+        ${isAdmin() ? `<div class="bulk"><button class="btn" type="button" id="bulk" aria-live="polite">연습 파일 한번에 받기</button></div>` : ""}
+        <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
+      </div>
     </header>
     <main><ol class="roster" id="roster"></ol></main>`;
   $("q").addEventListener("input", paintRoster);
+  $("bulk")?.addEventListener("click", downloadAllFiles);
 }
 function sortedStudents() {
   return [...app.students.entries()].filter(([, s]) => s.name)
@@ -1035,6 +1042,11 @@ function paintClass() {
   const done = list.reduce((a, [, s]) => a + tasks.filter(x => taskDone(s, x.stage, x.task)).length, 0);
   const pct = list.length && tasks.length ? Math.round(done / (list.length * tasks.length) * 100) : 0;
   $("class-sum").textContent = `${list.length}명 · 평균 완료율 ${pct}%`;
+  if ($("bulk") && !$("bulk").disabled && !$("bulk").dataset.msg) {
+    const n = list.reduce((a, [, s]) => a + Object.keys(s.files || {}).length, 0);
+    $("bulk").textContent = n ? `연습 파일 ${n}개 한번에 받기` : "올라온 연습 파일 없음";
+    $("bulk").dataset.n = n;
+  }
   paintRoster();
 }
 function paintRoster() {
@@ -1136,7 +1148,7 @@ function mountFile(uid, fid) {
     const c = fileCache.get(`${uid}/${fid}`); if (!c) return;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([c.content], { type: "text/plain;charset=utf-8" }));
-    a.download = c.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    a.download = c.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
   const key = `${uid}/${fid}`;
   if (fileCache.has(key)) { showFile(key); return; }
@@ -1173,5 +1185,65 @@ function paintFile(uid, fid) {
   if (f && $("fmeta")) {
     const t = allTasks().find(x => taskKey(x.stage, x.task) === f.task);
     $("fmeta").textContent = [s?.name, t?.task.title, kb(f.size || 0)].filter(Boolean).join(" · ");
+  }
+}
+
+/* 연습 파일 일괄 내려받기 (ZIP, 압축 없이 저장) */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = b => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+function makeZip(entries) {
+  const enc = new TextEncoder(), parts = [], dir = [];
+  const d = new Date(), time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  let offset = 0;
+  for (const e of entries) {
+    const name = enc.encode(e.name), data = enc.encode(e.text), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, name.length, 2], [28, 0, 2]].forEach(([o, v, n]) => n === 4 ? h.setUint32(o, v, true) : h.setUint16(o, v, true));
+    parts.push(h, name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, offset, 4]].forEach(([o, v, n]) => n === 4 ? c.setUint32(o, v, true) : c.setUint16(o, v, true));
+    dir.push(c, name);
+    offset += 30 + name.length + data.length;
+  }
+  const size = dir.reduce((a, x) => a + (x.byteLength ?? x.length), 0);
+  const end = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, entries.length, 2], [10, entries.length, 2], [12, size, 4], [16, offset, 4], [20, 0, 2]].forEach(([o, v, n]) => n === 4 ? end.setUint32(o, v, true) : end.setUint16(o, v, true));
+  return new Blob([...parts, ...dir, end], { type: "application/zip" });
+}
+const safeName = v => String(v || "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim().slice(0, 60) || "이름없음";
+async function downloadAllFiles() {
+  const btn = $("bulk");
+  const say = msg => { btn.dataset.msg = "1"; btn.textContent = msg; clearTimeout(btn._t); btn._t = setTimeout(() => { delete btn.dataset.msg; paintClass(); }, 3000); };
+  const jobs = [];
+  for (const [uid, s] of sortedStudents()) for (const [fid, f] of Object.entries(s.files || {})) jobs.push({ uid, fid, f, s });
+  if (!jobs.length) { say("올라온 연습 파일이 없습니다"); return; }
+  btn.disabled = true;
+  const { db, fsMod } = app.fb;
+  const entries = [], used = new Set();
+  let fail = 0;
+  try {
+    for (let i = 0; i < jobs.length; i++) {
+      const { uid, fid, f, s } = jobs[i];
+      btn.textContent = `받는 중 ${i + 1} / ${jobs.length}`;
+      try {
+        const d = await fsMod.getDoc(fsMod.doc(db, "students", uid, "files", fid));
+        if (!d.exists()) { fail++; continue; }
+        const t = allTasks().find(x => taskKey(x.stage, x.task) === f.task);
+        let path = `${safeName([s.sid, s.name].filter(Boolean).join("_"))}/${safeName(t?.task.title || "기타")}/${safeName(f.name)}`;
+        for (let k = 2; used.has(path); k++) path = path.replace(/(\.[^./]*)?$/, m => `_${k}${m}`);
+        used.add(path);
+        entries.push({ name: path, text: d.data().content || "" });
+      } catch { fail++; }
+    }
+    if (!entries.length) { say("파일을 받지 못했습니다"); return; }
+    const a = document.createElement("a");
+    const day = new Date().toISOString().slice(0, 10);
+    a.href = URL.createObjectURL(makeZip(entries));
+    a.download = `om26_files_${day}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    say(`${entries.length}개 받음${fail ? ` · ${fail}개 실패` : ""}`);
+  } catch { say("파일을 받지 못했습니다"); } finally {
+    btn.disabled = false;
   }
 }
