@@ -56,6 +56,7 @@ const ICON = {
 const icon = k => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[k]}"/></svg>`;
 
 /* 데이터 접근 */
+const JOURNEY_ROWS = ["인지", "비교탐색", "경험", "구매", "공유", "사후관리"];
 const taskKey = (stage, task) => `${stage.id}_${task.id}`;
 const resultOf = (s, stage, task) => s?.results?.[taskKey(stage, task)] || null;
 const taskDone = (s, stage, task) => hasValue(resultOf(s, stage, task));
@@ -875,14 +876,47 @@ function collectForm(form, t) {
 }
 function fillForm(form, t, r) {
   const set = (name, v) => { const e = form.elements.namedItem(name); if (e) e.value = v ?? ""; };
+  const auto = t.auto === "landing" ? landingDefaults() : null;
   for (const f of t.fields) {
     if (f.type === "checks") { const on = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = on.has(x.value); }); }
     else if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
     else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id]); });
     else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k])));
-    else if (f.type === "group") Array.from({ length: f.count }).forEach((_, i) => f.fields.forEach(x => set(`${f.k}.${i}.${x.k}`, r[f.k]?.[i]?.[x.k] ?? (x.k === "name" && f.names ? (i === 0 ? (me()?.name || "나") : defaultRival(i)) : ""))));
-    else set(f.k, r[f.k]);
+    else if (f.type === "group") Array.from({ length: f.count }).forEach((_, i) => f.fields.forEach(x => set(`${f.k}.${i}.${x.k}`, r[f.k]?.[i]?.[x.k] ?? (auto ? auto[f.k]?.[i]?.[x.k] : x.k === "name" && f.names ? (i === 0 ? (me()?.name || "나") : defaultRival(i)) : ""))));
+    else set(f.k, r[f.k] ?? auto?.[f.k]);
   }
+}
+// 홈페이지 기획서: 저장 전에는 2단계 결과로 미리 채움 (근거가 없으면 비워 둠)
+function landingDefaults() {
+  const data = me() || {};
+  const st = stageOf("strategy");
+  const res = id => resultOf(data, st, st.tasks.find(x => x.id === id)) || {};
+  const first = v => String(v || "").split("\n").map(x => x.trim()).find(Boolean) || "";
+  const jr = res("journey"), rows = jr.rows || [];
+  const worry = name => rows[JOURNEY_ROWS.indexOf(name)]?.worry || "";
+  const findWorry = (re, fb) => rows.map(x => x?.worry).find(w => w && re.test(w)) || worry(fb);
+  const stp = res("stp"), c3 = res("c3pest"), rv = res("rivals"), bench = res("bench"), plan = res("plan");
+  const biz = resultOf(data, stageOf("product"), stageOf("product").tasks[0]) || {};
+  const ti = parseInt(String(stp.first || "").replace(/\D/g, ""), 10) - 1;
+  const target = stp.segs?.[ti]?.name || "";
+  const trust = (bench.list || []).map(x => x?.trust).filter(Boolean).join(", ");
+  const hasPlan = hasValue(plan);
+  const sec = (name, w, basis) => ({ sec: name, worry: w, basis });
+  return {
+    stage: jr.home || "",
+    hero: stp.position || "",
+    sub: target ? `${target}${josa(target, "을", "를")} 위한 ${first(biz.q1)}`.trim() : "",
+    plan: [
+      sec("첫 화면", worry(jr.home || "인지") || worry("인지"), stp.position ? `STP 포지셔닝 : ${stp.position}` : ""),
+      sec("문제 공감", worry("인지"), c3.customer ? `3C Customer : ${first(c3.customer)}` : ""),
+      sec("서비스", worry("경험"), biz.q1 ? `비즈니스 정리 ① : ${biz.q1}` : ""),
+      sec("차별점", worry("비교탐색"), rv.diff ? `경쟁사 비교 : ${first(rv.diff)}` : ""),
+      sec("신뢰", findWorry(/믿|신뢰|진짜|후기|실제/, "인지"), trust ? `벤치마킹 신뢰 요소 : ${trust}` : ""),
+      sec("이용 방법 · 가격", findWorry(/가격|비싸|비용|얼마|요금|부스비/, "구매"), hasPlan ? "4P Price · 4C Cost" : ""),
+      sec("FAQ", rows.map(x => x?.worry).filter(Boolean).slice(0, 3).join(" / "), rows.some(x => x?.worry) ? "고객여정 표의 불안" : ""),
+      sec("CTA · 연락처", worry("구매"), hasPlan ? "4C Convenience" : "")
+    ]
+  };
 }
 function defaultRival(i) {
   const st = stageOf("strategy");
