@@ -2,6 +2,7 @@
 // 단계(STAGES) > 과제(tasks). 과제마다 한 줄 설명(desc), 핵심(points), 따라하기(steps), 프롬프트(prompt), 입력 항목(fields)
 // 입력 항목 종류: text, textarea, url, select, number, grid(표 입력), group(반복 묶음), checks(체크 목록), tree-pick(트리 체크), tree-count(트리 숫자)
 // files: true 이면 과제 페이지에 연습 파일 올리기 칸이 생김
+// 앞 과제 결과로 입력칸을 미리 채우는 규칙은 app.js의 DERIVE에 과제별로 둔다
 
 const JOURNEY = ["인지", "비교탐색", "경험", "구매", "공유", "사후관리"];
 const AI_STEP = "프롬프트를 복사해 ChatGPT · Claude · Gemini 중 하나에 붙여 넣습니다.";
@@ -343,7 +344,6 @@ export const STAGES = [
       {
         id: "landing",
         card: "①",
-        auto: "landing",
         title: "홈페이지 기획서",
         desc: "전략 기획서를 근거로 원페이지의 담당 단계, 주 CTA, 섹션 구성, 첫 화면 문구를 정합니다. 실습 ① 결과물입니다.",
         points: [
@@ -366,7 +366,7 @@ export const STAGES = [
           { k: "hero", label: "헤드라인 (20자 이내)", type: "text", ph: "혼자 두 시간, 눈치 없이 앉는 자리" },
           { k: "sub", label: "서브카피", type: "text", ph: "수성구에서 일하는 30~40대를 위한 1인 좌석 카페" },
           {
-            k: "plan", label: "섹션 구성표 (2단계 결과로 미리 채움 · 근거가 비는 섹션은 지우기)", type: "group", count: 8,
+            k: "plan", label: "섹션 구성표 (근거가 비는 섹션은 지우기)", type: "group", count: 8,
             names: ["1 첫 화면 · 근거 STP 포지셔닝", "2 문제 공감 · 근거 3C 고객", "3 서비스 · 근거 비즈니스 정리 ①", "4 차별점 · 근거 경쟁사 비교", "5 신뢰 · 근거 벤치마킹 신뢰 요소", "6 이용 방법 · 가격 · 근거 4P · 4C", "7 FAQ · 근거 고객여정의 불안", "8 CTA · 연락처 · 근거 4C 편의"],
             fields: [
               { k: "sec", label: "섹션명", type: "text" },
