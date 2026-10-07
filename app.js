@@ -750,6 +750,7 @@ function mountTask(st, index) {
       <section class="sec result">
         <h2 class="sec-h">결과 저장<span>확인한 내용만 적으면 대시보드에 반영됩니다</span></h2>
         ${app.user ? `<form class="rform" id="rform" autocomplete="off">
+          <p class="autonote wide" hidden>${icon("check")}앞 과제 결과로 미리 채웠습니다. 확인하고 고쳐서 저장하세요</p>
           ${t.fields.map(f => fieldHtml(f)).join("")}
           <div class="actions"><button class="btn" type="submit">저장하기</button><p class="note mono" id="rnote" role="status"></p></div>
         </form>` : `<div class="notice"><p>결과를 저장하려면 로그인하세요.</p><button class="btn" type="button" data-act="login">구글 계정으로 로그인</button></div>`}
@@ -876,22 +877,56 @@ function collectForm(form, t) {
 }
 function fillForm(form, t, r) {
   const set = (name, v) => { const e = form.elements.namedItem(name); if (e) e.value = v ?? ""; };
-  const auto = t.auto === "landing" ? landingDefaults() : null;
+  const st = STAGES.find(x => x.tasks.includes(t));
+  const auto = derive(st, t);
+  const note = form.querySelector(".autonote");
+  if (note) note.hidden = !(auto && !hasValue(r) && hasValue(auto));
   for (const f of t.fields) {
     if (f.type === "checks") { const on = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = on.has(x.value); }); }
     else if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
     else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id]); });
-    else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k])));
-    else if (f.type === "group") Array.from({ length: f.count }).forEach((_, i) => f.fields.forEach(x => set(`${f.k}.${i}.${x.k}`, r[f.k]?.[i]?.[x.k] ?? (auto ? auto[f.k]?.[i]?.[x.k] : x.k === "name" && f.names ? (i === 0 ? (me()?.name || "나") : defaultRival(i)) : ""))));
+    else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k] ?? auto?.[f.k]?.[i]?.[c.k])));
+    else if (f.type === "group") Array.from({ length: f.count }).forEach((_, i) => f.fields.forEach(x => set(`${f.k}.${i}.${x.k}`, r[f.k]?.[i]?.[x.k] ?? auto?.[f.k]?.[i]?.[x.k] ?? (x.k === "name" && f.names ? (i === 0 ? (me()?.name || "나") : defaultRival(i)) : ""))));
     else set(f.k, r[f.k] ?? auto?.[f.k]);
   }
 }
-// 홈페이지 기획서: 저장 전에는 2단계 결과로 미리 채움 (근거가 없으면 비워 둠)
+/* 앞 과제 결과 자동 반영
+   과제를 아직 저장하지 않았으면 입력칸을 앞 과제 결과로 미리 채운다. 저장한 값은 덮어쓰지 않는다.
+   새 과제를 추가할 때는 DERIVE에 "단계_과제" 키로 규칙을 추가한다. 반환값은 저장 형식과 같은 객체. */
+const firstLine = v => String(v || "").split("\n").map(x => x.trim()).find(Boolean) || "";
+const linesOf = v => String(v || "").split("\n").map(x => x.trim()).filter(Boolean);
+function ctx() {
+  const data = me() || {};
+  const get = key => { const [sid, tid] = key.split("_"); const st = stageOf(sid); return resultOf(data, st, st?.tasks.find(x => x.id === tid)) || {}; };
+  const stp = get("strategy_stp");
+  const ti = parseInt(String(stp.first || "").replace(/\D/g, ""), 10) - 1;
+  return { get, biz: get("product_business"), target: stp.segs?.[ti]?.name || "" };
+}
+const DERIVE = {
+  strategy_c3pest: ({ biz }) => ({ customer: biz.q2 || "", company: [biz.q1, biz.q7].filter(Boolean).join("\n") }),
+  strategy_swot: ({ get, biz }) => { const c = get("strategy_c3pest"); return { s: c.company || biz.q7 || "", w: biz.q6 || "", o: c.pest || "", t: c.competitor || "" }; },
+  strategy_journey: ({ biz }) => ({ rows: [{ ch: biz.q3 || "" }] }),
+  strategy_rivals: ({ get, biz }) => ({ list: linesOf(get("strategy_c3pest").competitor).slice(0, 3).map(l => ({ name: l.split(/[:(]/)[0].trim() })), diff: biz.q7 || "" }),
+  strategy_stp: ({ biz }) => ({ position: biz.q7 || "" }),
+  strategy_summary: ({ get, biz, target }) => {
+    const j = get("strategy_journey"), rows = j.rows || [];
+    const ch = rows[JOURNEY_ROWS.indexOf(j.home)]?.ch || biz.q3 || "";
+    return { target, value: firstLine(get("strategy_rivals").diff) || get("strategy_stp").position || "", channel: String(ch).split(/[,/]/)[0].trim(), stage: j.home || "" };
+  },
+  vibecoding_landing: () => landingDefaults(),
+  vibecoding_deploy: ({ get }) => ({ url: get("vibecoding_iterate").preview || "", platform: get("vibecoding_stack").deploy || "" }),
+  execution_channels: ({ get }) => { const m = get("strategy_summary"); return { why: m.channel ? `전략 한 문장의 채널 ${m.channel} · ${m.stage || ""} 단계 공략`.trim() : "" }; }
+};
+function derive(st, t) {
+  const fn = st && DERIVE[taskKey(st, t)];
+  if (!fn) return null;
+  try { return fn(ctx()); } catch { return null; }
+}
 function landingDefaults() {
   const data = me() || {};
   const st = stageOf("strategy");
   const res = id => resultOf(data, st, st.tasks.find(x => x.id === id)) || {};
-  const first = v => String(v || "").split("\n").map(x => x.trim()).find(Boolean) || "";
+  const first = firstLine;
   const jr = res("journey"), rows = jr.rows || [];
   const worry = name => rows[JOURNEY_ROWS.indexOf(name)]?.worry || "";
   const findWorry = (re, fb) => rows.map(x => x?.worry).find(w => w && re.test(w)) || worry(fb);
