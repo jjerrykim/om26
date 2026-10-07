@@ -1006,7 +1006,13 @@ function mountProfile() {
         <label class="field"><span class="mono">로그인 계정</span><input value="${esc(app.user?.email || "")}" disabled></label>
         <div class="actions"><button class="btn" type="submit">저장하기</button><p class="note mono" id="profile-note" role="status"></p><button class="btn ghost logout" type="button" data-act="logout">로그아웃</button></div>
       </form>
-    </section></main>`;
+    </section>
+    ${isAdmin() ? `<section class="sec">
+      <h2 class="sec-h">예시 데이터<span>교수자 계정에만 보입니다 · 내 대시보드에 저장되고 같은 과제는 덮어씁니다</span></h2>
+      <div class="seed"><button class="btn" type="button" id="seed-fleamoa">플리모아 예시 넣기</button><p class="note mono" id="seed-note" role="status"></p></div>
+    </section>` : ""}
+    </main>`;
+  $("seed-fleamoa")?.addEventListener("click", () => seedExample("examples/fleamoa.json", "플리모아"));
   const f = $("profile");
   f.addEventListener("input", () => { f.dataset.dirty = "1"; });
   f.addEventListener("submit", onProfileSubmit);
@@ -1019,6 +1025,22 @@ function paintProfile() {
   f.elements.dept.value = data.dept || "";
   f.elements.sid.value = data.sid || "";
   if (app.loaded && !data.name) flash($("profile-note"), false, "처음 오셨네요. 이름을 입력하고 저장하세요");
+}
+async function seedExample(url, label) {
+  const note = $("seed-note"), btn = $("seed-fleamoa");
+  if (!me()?.name) { flash(note, false, "먼저 위에서 이름을 저장하세요"); return; }
+  try {
+    const res = await fetch(`${url}?v=${Date.now()}`, { cache: "no-store" });
+    const r = parseImport(await res.text());
+    if (r.error) { flash(note, false, r.error); return; }
+    const filled = Object.keys(r.results).filter(k => hasValue(me()?.results?.[k])).length;
+    if (filled && !confirm(`이미 작성한 과제 ${filled}개가 ${label} 예시로 바뀝니다. 계속할까요?`)) return;
+    btn.disabled = true;
+    await saveMine({ results: r.results });
+    flash(note, true, `${label} 예시 과제 ${r.n}개를 넣었습니다 · <a href="#/">대시보드에서 보기</a>`);
+  } catch (err) {
+    flash(note, false, err?.code === "permission-denied" ? "저장 권한이 없습니다" : "넣지 못했습니다");
+  } finally { btn.disabled = false; }
 }
 function onProfileSubmit(e) {
   e.preventDefault();
