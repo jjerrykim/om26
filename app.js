@@ -51,7 +51,9 @@ const ICON = {
   right: "M9 6l6 6-6 6",
   ur: "M9 6l6 6-6 6",
   check: "M5 12.5l4.5 4.5L19 7.5",
-  copy: "M9 9h10v10H9zM5 15V5h10"
+  copy: "M9 9h10v10H9zM5 15V5h10",
+  down2: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  plus: "M12 5v14M5 12h14"
 };
 const icon = k => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[k]}"/></svg>`;
 
@@ -1068,7 +1070,7 @@ function mountProfile() {
     </section>
     ${isAdmin() ? `<section class="sec">
       <h2 class="sec-h">예시 데이터<span>교수자 계정에만 보입니다 · 내 대시보드에 저장되고 같은 과제는 덮어씁니다</span></h2>
-      <div class="seed"><button class="btn" type="button" id="seed-fleamoa">플리모아 예시 넣기</button><p class="note mono" id="seed-note" role="status"></p></div>
+      <div class="seed"><button class="btn ghost" type="button" id="seed-fleamoa">${icon("plus")}플리모아 예시 넣기</button><p class="note mono" id="seed-note" role="status"></p></div>
     </section>` : ""}
     </main>`;
   $("seed-fleamoa")?.addEventListener("click", () => seedExample("examples/fleamoa.json", "플리모아"));
@@ -1174,7 +1176,7 @@ function mountClass() {
     <header class="class-head">
       <div><h1>전체보기</h1><p class="mono muted" id="class-sum"></p></div>
       <div class="class-tools">
-        ${isAdmin() ? `<div class="bulk"><button class="btn" type="button" id="bulk" aria-live="polite">연습 파일 한번에 받기</button></div>` : ""}
+        ${isAdmin() ? `<div class="bulk"><button class="dlbtn" type="button" id="bulk" aria-live="polite" title="전체 학생의 연습 파일을 ZIP 하나로 받기">${icon("down2")}<span class="t">연습 파일</span><span class="n">0</span></button></div>` : ""}
         <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
       </div>
     </header>
@@ -1222,7 +1224,8 @@ function paintClass() {
   paintRace();
   if ($("bulk") && !$("bulk").disabled && !$("bulk").dataset.msg) {
     const n = sortedStudents().reduce((a, [, s]) => a + Object.keys(s.files || {}).length, 0);
-    $("bulk").textContent = n ? `연습 파일 ${n}개 한번에 받기` : "올라온 연습 파일 없음";
+    setBulk(`연습 파일`, n);
+    $("bulk").disabled = !n;
     $("bulk").dataset.n = n;
   }
   paintRoster();
@@ -1403,9 +1406,14 @@ function makeZip(entries) {
   return new Blob([...parts, ...dir, end], { type: "application/zip" });
 }
 const safeName = v => String(v || "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_").trim().slice(0, 60) || "이름없음";
+function setBulk(text, n) {
+  const b = $("bulk"); if (!b) return;
+  b.querySelector(".t").textContent = text;
+  const c = b.querySelector(".n"); c.textContent = n ?? ""; c.hidden = n == null || n === "";
+}
 async function downloadAllFiles() {
   const btn = $("bulk");
-  const say = msg => { btn.dataset.msg = "1"; btn.textContent = msg; clearTimeout(btn._t); btn._t = setTimeout(() => { delete btn.dataset.msg; paintClass(); }, 3000); };
+  const say = msg => { btn.dataset.msg = "1"; setBulk(msg); clearTimeout(btn._t); btn._t = setTimeout(() => { delete btn.dataset.msg; paintClass(); }, 3000); };
   const jobs = [];
   for (const [uid, s] of sortedStudents()) for (const [fid, f] of Object.entries(s.files || {})) jobs.push({ uid, fid, f, s });
   if (!jobs.length) { say("올라온 연습 파일이 없습니다"); return; }
@@ -1416,7 +1424,7 @@ async function downloadAllFiles() {
   try {
     for (let i = 0; i < jobs.length; i++) {
       const { uid, fid, f, s } = jobs[i];
-      btn.textContent = `받는 중 ${i + 1} / ${jobs.length}`;
+      setBulk("받는 중", `${i + 1}/${jobs.length}`);
       try {
         const d = await fsMod.getDoc(fsMod.doc(db, "students", uid, "files", fid));
         if (!d.exists()) { fail++; continue; }
