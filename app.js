@@ -79,6 +79,10 @@ const me = () => (app.user ? app.students.get(app.user.uid) : null);
 // 교수자 계정: 전체보기에서 연습 파일 일괄 내려받기
 const ADMIN_EMAILS = ["kimky@kmu.ac.kr", "jjerry.kim@gmail.com"];
 const isAdmin = () => ADMIN_EMAILS.includes(String(app.user?.email || "").toLowerCase());
+// 교수자 기록은 순위 · 평균 · 진도 트랙에서 제외 (이름 기준, 교수자 본인 로그인 시 uid 기준)
+const STAFF_NAMES = ["김경율"];
+const isStaff = (uid, s) => (uid === app.user?.uid && isAdmin()) || STAFF_NAMES.includes(String(s?.name || "").trim());
+const rankedStudents = () => sortedStudents().filter(([uid, s]) => !isStaff(uid, s));
 
 /* Firebase */
 let unsubscribe = null;
@@ -243,7 +247,7 @@ function bar(done, total, avg) {
 /* 반 전체 비교 */
 const doneCount = s => allTasks().filter(x => taskDone(s, x.stage, x.task)).length;
 function classStats() {
-  const list = sortedStudents().map(([, s]) => s);
+  const list = rankedStudents().map(([, s]) => s);
   const n = list.length;
   const avgDone = n ? list.reduce((a, s) => a + doneCount(s), 0) / n : 0;
   const stageAvg = Object.fromEntries(STAGES.map(st => [st.id, n && st.tasks.length ? list.reduce((a, s) => a + stageProgress(s, st).done, 0) / (n * st.tasks.length) : 0]));
@@ -316,7 +320,7 @@ function paintDashboard(uid) {
 
   const tasks = allTasks();
   const next = tasks.find(x => !taskDone(data, x.stage, x.task));
-  const cs0 = uid !== "case" && app.loaded && data.name ? classStats() : null;
+  const cs0 = uid !== "case" && app.loaded && data.name && !isStaff(uid, data) ? classStats() : null;
   const cs = cs0 && cs0.n > 1 ? cs0 : null;
   if (!stageOf(dashTab[uid])) dashTab[uid] = STAGES[0].id;
   $("flow").innerHTML = STAGES.map((st, i) => {
@@ -343,8 +347,8 @@ function paintDashboard(uid) {
     : `<b>완료</b>`;
   if (cs && $("vsavg")) {
     const d = Math.round(done - cs.avgDone);
-    const rank = 1 + sortedStudents().filter(([, x]) => doneCount(x) > done).length;
-    const tie = sortedStudents().filter(([, x]) => doneCount(x) === done).length > 1;
+    const rank = 1 + rankedStudents().filter(([, x]) => doneCount(x) > done).length;
+    const tie = rankedStudents().filter(([, x]) => doneCount(x) === done).length > 1;
     const top = Math.max(1, Math.round(rank / cs.n * 100));
     const who = mine ? "" : `${esc(data.name || "")}님은 `;
     $("vsavg").innerHTML = `<span class="vs-rank">${tie ? `<span class="mono tie">공동</span>` : ""}<b>${rank}</b>위<span class="mono"> / ${cs.n}명 · 상위 ${top}%</span></span><span class="vs-main">${who}${d > 0 ? `반 평균보다 과제 <b>${d}개</b> 앞서 있어요` : d < 0 ? `반 평균보다 과제 <b>${-d}개</b> 뒤에 있어요` : "반 평균과 같은 속도예요"}</span><span class="mono muted">반 평균 ${cs.avgDone.toFixed(1)}개 · 단계 막대의 세로선이 반 평균</span>`;
@@ -1189,7 +1193,7 @@ let raceAnim = false;
 function paintRace() {
   const el = $("race");
   if (!el || !app.loaded) return;
-  const list = sortedStudents();
+  const list = rankedStudents();
   if (!list.length) { el.innerHTML = ""; return; }
   const pts = list.map(([uid, s]) => ({ uid, s, me: uid === app.user?.uid, x: trackPos(s) })).sort((a, b) => a.x - b.x || (a.me ? 1 : -1));
   // 겹치지 않게 줄 배치: 앞 점과 가까우면 위 줄로
@@ -1210,14 +1214,14 @@ function paintRace() {
   if (animate) requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll(".dot").forEach((d, i) => { d.style.transitionDelay = `${Math.min(i * 40, 600)}ms`; d.style.setProperty("--x", d.dataset.x); })));
 }
 function paintClass() {
-  const list = sortedStudents();
+  const list = rankedStudents();
   const tasks = allTasks();
   const done = list.reduce((a, [, s]) => a + tasks.filter(x => taskDone(s, x.stage, x.task)).length, 0);
   const pct = list.length && tasks.length ? Math.round(done / (list.length * tasks.length) * 100) : 0;
   $("class-sum").textContent = `${list.length}명 · 평균 완료율 ${pct}%`;
   paintRace();
   if ($("bulk") && !$("bulk").disabled && !$("bulk").dataset.msg) {
-    const n = list.reduce((a, [, s]) => a + Object.keys(s.files || {}).length, 0);
+    const n = sortedStudents().reduce((a, [, s]) => a + Object.keys(s.files || {}).length, 0);
     $("bulk").textContent = n ? `연습 파일 ${n}개 한번에 받기` : "올라온 연습 파일 없음";
     $("bulk").dataset.n = n;
   }
