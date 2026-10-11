@@ -244,7 +244,8 @@ function flowLinks(render) {
 }
 function bar(done, total, avg) {
   const pct = total ? Math.round(done / total * 100) : 0;
-  const tick = avg == null ? "" : `<i class="avgtick" style="left:${Math.round(avg * 100)}%" title="반 평균 ${Math.round(avg * 100)}%"></i>`;
+  const a = avg == null ? 0 : Math.round(avg * 100);
+  const tick = avg == null ? "" : `<i class="avgtick ${a < 15 ? "at-l" : a > 85 ? "at-r" : ""}" style="left:${a}%" title="반 평균 ${a}%"><em class="mono">평균 ${a}%</em></i>`;
   return `<span class="rate"><span class="track"><span style="width:${pct}%"></span>${tick}</span></span>`;
 }
 /* 반 전체 비교 */
