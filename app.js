@@ -235,10 +235,27 @@ function flowLinks(render) {
       ${render ? render(s, i) : `<span class="mono muted">${s.tasks.length ? `과제 ${s.tasks.length}개` : "준비 중"}</span>`}
     </a></li>`).join("")}</ol></nav>`;
 }
-function bar(done, total) {
+function bar(done, total, avg) {
   const pct = total ? Math.round(done / total * 100) : 0;
-  return `<span class="rate"><span class="track"><span style="width:${pct}%"></span></span></span>`;
+  const tick = avg == null ? "" : `<i class="avgtick" style="left:${Math.round(avg * 100)}%" title="반 평균 ${Math.round(avg * 100)}%"></i>`;
+  return `<span class="rate"><span class="track"><span style="width:${pct}%"></span>${tick}</span></span>`;
 }
+/* 반 전체 비교 */
+const doneCount = s => allTasks().filter(x => taskDone(s, x.stage, x.task)).length;
+function classStats() {
+  const list = sortedStudents().map(([, s]) => s);
+  const n = list.length;
+  const avgDone = n ? list.reduce((a, s) => a + doneCount(s), 0) / n : 0;
+  const stageAvg = Object.fromEntries(STAGES.map(st => [st.id, n && st.tasks.length ? list.reduce((a, s) => a + stageProgress(s, st).done, 0) / (n * st.tasks.length) : 0]));
+  return { n, avgDone, stageAvg };
+}
+// 트랙 위치: 끝내지 못한 첫 단계 + 그 단계 진행률, 단계마다 같은 폭
+function trackPos(s) {
+  for (let i = 0; i < STAGES.length; i++) { const p = stageProgress(s, STAGES[i]); if (p.done < p.total) return (i + p.done / p.total) / STAGES.length; }
+  return 1;
+}
+const shortName = n => { const t = String(n || "").trim(); return /^[가-힣]{3,4}$/.test(t) ? t.slice(1) : t.slice(0, 3); };
+const stampsHtml = s => `<span class="stamps">${STAGES.map((st, i) => st.tasks.length && stageProgress(s, st).done === st.tasks.length ? `<i title="${esc(st.name)} 완주">${pad(i + 1)}</i>` : "").join("")}</span>`;
 const backLink = (href, text) => `<a class="back mono" href="${href}">${icon("left")}${esc(text)}</a>`;
 
 /* 설정 전, 로그인 전 */
@@ -281,6 +298,7 @@ function mountDashboard(uid) {
       ${side}
     </header>
     <div class="stats" id="stats"></div>
+    <p class="vsavg" id="vsavg" hidden></p>
     <div id="oneline"></div>
     <nav class="dash-tabs" aria-label="과정 단계"><ol class="flow" id="flow" role="tablist"></ol></nav>
     <main id="board"></main>`;
@@ -298,6 +316,8 @@ function paintDashboard(uid) {
 
   const tasks = allTasks();
   const next = tasks.find(x => !taskDone(data, x.stage, x.task));
+  const cs0 = uid !== "case" && app.loaded && data.name ? classStats() : null;
+  const cs = cs0 && cs0.n > 1 ? cs0 : null;
   if (!stageOf(dashTab[uid])) dashTab[uid] = STAGES[0].id;
   $("flow").innerHTML = STAGES.map((st, i) => {
     const p = stageProgress(data, st);
@@ -306,7 +326,7 @@ function paintDashboard(uid) {
     return `<li><button type="button" class="cell" role="tab" aria-selected="${on}" aria-controls="board" data-tab="${st.id}">
       <span class="idx mono"><span>${pad(i + 1)}</span></span>
       <span class="name">${esc(st.name)}</span>
-      <span class="rate">${bar(p.done, p.total)}<span class="label mono"><span>${label}</span><span>${st.tasks.length ? Math.round(p.done / p.total * 100) + "%" : ""}</span></span></span>
+      <span class="rate">${bar(p.done, p.total, cs ? cs.stageAvg[st.id] : null)}<span class="label mono"><span>${label}</span><span>${st.tasks.length ? Math.round(p.done / p.total * 100) + "%" : ""}</span></span></span>
     </button></li>`;
   }).join("");
   $("flow").querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => {
@@ -321,6 +341,16 @@ function paintDashboard(uid) {
   const nextHtml = next
     ? (mine ? `<a class="next" href="#/stage/${next.stage.id}/${next.stage.tasks.indexOf(next.task) + 1}">${esc(next.task.title)} ${icon("right")}</a>` : `<b class="next">${esc(next.task.title)}</b>`)
     : `<b>완료</b>`;
+  if (cs && $("vsavg")) {
+    const d = Math.round(done - cs.avgDone);
+    const rank = 1 + sortedStudents().filter(([, x]) => doneCount(x) > done).length;
+    const tie = sortedStudents().filter(([, x]) => doneCount(x) === done).length > 1;
+    const top = Math.max(1, Math.round(rank / cs.n * 100));
+    const who = mine ? "" : `${esc(data.name || "")}님은 `;
+    $("vsavg").innerHTML = `<span class="vs-rank">${tie ? `<span class="mono tie">공동</span>` : ""}<b>${rank}</b>위<span class="mono"> / ${cs.n}명 · 상위 ${top}%</span></span><span class="vs-main">${who}${d > 0 ? `반 평균보다 과제 <b>${d}개</b> 앞서 있어요` : d < 0 ? `반 평균보다 과제 <b>${-d}개</b> 뒤에 있어요` : "반 평균과 같은 속도예요"}</span><span class="mono muted">반 평균 ${cs.avgDone.toFixed(1)}개 · 단계 막대의 세로선이 반 평균</span>`;
+    $("vsavg").className = `vsavg ${d > 0 ? "up" : d < 0 ? "down" : ""}`;
+    $("vsavg").hidden = false;
+  }
   $("stats").innerHTML = `
     <div><b>${done}<span class="mono"> / ${tasks.length}</span></b><span class="mono">완료한 과제</span></div>
     <div>${nextHtml}<span class="mono">${next ? "다음 할 일" : "전체 과제"}</span></div>`;
@@ -1144,7 +1174,9 @@ function mountClass() {
         <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
       </div>
     </header>
+    <section class="race" id="race" aria-label="진도 트랙"></section>
     <main><ol class="roster" id="roster"></ol></main>`;
+  raceAnim = true;
   $("q").addEventListener("input", paintRoster);
   $("bulk")?.addEventListener("click", downloadAllFiles);
 }
@@ -1152,12 +1184,37 @@ function sortedStudents() {
   return [...app.students.entries()].filter(([, s]) => s.name)
     .sort(([, a], [, b]) => String(a.sid || "").localeCompare(String(b.sid || "")) || String(a.name).localeCompare(String(b.name), "ko"));
 }
+let raceAnim = false;
+function paintRace() {
+  const el = $("race");
+  if (!el || !app.loaded) return;
+  const list = sortedStudents();
+  if (!list.length) { el.innerHTML = ""; return; }
+  const pts = list.map(([uid, s]) => ({ uid, s, me: uid === app.user?.uid, x: trackPos(s) })).sort((a, b) => a.x - b.x || (a.me ? 1 : -1));
+  // 겹치지 않게 줄 배치: 앞 점과 가까우면 위 줄로
+  const fieldW = Math.max(200, el.clientWidth - (innerWidth <= 640 ? 36 : 56) - 28);
+  const gap = (innerWidth <= 640 ? 34 : 50) / fieldW;
+  const lastX = [];
+  pts.forEach(p => { let r = lastX.findIndex(x => p.x - x >= gap); if (r < 0) r = lastX.length; lastX[r] = p.x; p.r = r; });
+  const maxR = Math.max(0, ...pts.map(p => p.r));
+  const avgX = pts.reduce((a, p) => a + p.x, 0) / pts.length;
+  const animate = raceAnim && !reduceMotion();
+  raceAnim = false;
+  el.innerHTML = `
+    <div class="race-lanes">${STAGES.map((st, i) => `<span><b class="mono">${pad(i + 1)}</b><em>${esc(st.name)}</em></span>`).join("")}<span class="goal"><b class="mono">완주</b></span></div>
+    <div class="race-field" style="--rows:${maxR + 1}">
+      <i class="race-avg" style="--ax:${avgX.toFixed(3)}"><span class="mono">반 평균</span></i>
+      ${pts.map(p => `<a class="dot${p.me ? " me" : ""}${p.x >= 1 ? " done" : ""}" href="#/s/${encodeURIComponent(p.uid)}" title="${esc(p.s.name)} · ${doneCount(p.s)}개 완료" style="--x:${animate ? 0 : p.x};--r:${p.r}" data-x="${p.x}">${esc(p.me ? "나" : shortName(p.s.name))}</a>`).join("")}
+    </div>`;
+  if (animate) requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll(".dot").forEach((d, i) => { d.style.transitionDelay = `${Math.min(i * 40, 600)}ms`; d.style.setProperty("--x", d.dataset.x); })));
+}
 function paintClass() {
   const list = sortedStudents();
   const tasks = allTasks();
   const done = list.reduce((a, [, s]) => a + tasks.filter(x => taskDone(s, x.stage, x.task)).length, 0);
   const pct = list.length && tasks.length ? Math.round(done / (list.length * tasks.length) * 100) : 0;
   $("class-sum").textContent = `${list.length}명 · 평균 완료율 ${pct}%`;
+  paintRace();
   if ($("bulk") && !$("bulk").disabled && !$("bulk").dataset.msg) {
     const n = list.reduce((a, [, s]) => a + Object.keys(s.files || {}).length, 0);
     $("bulk").textContent = n ? `연습 파일 ${n}개 한번에 받기` : "올라온 연습 파일 없음";
@@ -1177,7 +1234,7 @@ function paintRoster() {
   el.innerHTML = list.map(([uid, s]) => {
     const d = tasks.filter(x => taskDone(s, x.stage, x.task)).length;
     return `<li><a class="r" href="#/s/${encodeURIComponent(uid)}">
-      <span class="who"><span class="nm${uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span><span class="meta">${esc([s.dept, s.sid].filter(Boolean).join(" · "))}</span></span>
+      <span class="who"><span class="nm${uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span>${stampsHtml(s)}<span class="meta">${esc([s.dept, s.sid].filter(Boolean).join(" · "))}</span></span>
       ${bar(d, tasks.length)}
       <span class="cnt mono">${d} / ${tasks.length}</span>
       <span class="go">${icon("right")}</span>
