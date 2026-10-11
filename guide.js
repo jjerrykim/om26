@@ -309,41 +309,17 @@ export const STAGES = [
     id: "vibecoding",
     name: "바이브코딩",
     chapter: "",
-    desc: "전략 기획서를 근거로 AI와 대화하며 홈페이지를 만들고, 문의를 저장하고, 점검한 뒤 인터넷에 공개합니다.",
-    produce: ["기술 스택 표", "홈페이지 기획서", "1차 버전과 수정 기록", "문의 저장 연결", "게시 전 점검", "공개 주소"],
+    desc: "전략 기획서를 근거로 AI와 대화하며 홈페이지를 만들고, 회원 기능을 붙여 인터넷에 공개합니다.",
+    produce: ["홈페이지 기획서", "테스트버전과 수정 기록", "AGENTS.md와 첫 배포", "회원가입 · 로그인 · 내 문의", "게시 전 점검", "공개 주소"],
     points: [
       "코드는 AI가 쓰지만, 누구에게 무엇을 보여줄지는 전략 기획서가 정함",
-      "첫 결과는 70점, 나머지는 수정 요청으로 채움",
-      "소개만 하는 홈페이지는 프론트엔드만으로 충분, 문의를 받는 순간부터 백엔드와 DB가 필요"
+      "테스트버전은 대화형 AI로 빠르게, 실제 서비스는 Claude Code · Codex와 Firebase로",
+      "한 번에 하나씩 요청하고, 배포 주소에서 직접 눌러 보며 확인"
     ],
     tasks: [
       {
-        id: "stack",
-        title: "기술 스택 고르기",
-        desc: "내 홈페이지에 필요한 기능을 정하고, 영역별로 쓸 도구를 고릅니다. 실습 ① 기획서에 들어가는 표입니다.",
-        points: [
-          "처음이면 대화형 AI(Claude · Gemini · ChatGPT)로 시작, 설치형은 익숙해진 뒤 선택",
-          "소개 · 가격 안내는 HTML만으로 충분, 문의 접수부터 백엔드 · DB 필요",
-          "고르는 기준 : 무료로 시작 가능한가 · 한국어 자료가 많은가 · AI가 잘 다루는가"
-        ],
-        steps: [
-          "내 홈페이지에 필요한 기능을 정합니다. 소개, 예약 · 구매 링크, 문의 접수 중 무엇이 필요한지 적습니다.",
-          "영역마다 쓸 도구를 고릅니다. 예시 A 카페 : Claude 아티팩트 · Supabase · 네이버 예약 링크 · Vercel · 가비아",
-          "고른 이유를 한 줄로 적고 저장합니다."
-        ],
-        fields: [
-          { k: "front", label: "프론트엔드", type: "select", options: ["Claude 아티팩트", "Gemini 캔버스", "ChatGPT 코드 블록", "Claude Code", "Codex", "Cursor", "Antigravity", "Lovable", "Bolt.new", "v0", "기타"] },
-          { k: "db", label: "백엔드 · DB", type: "select", options: ["필요 없음", "Supabase", "Firebase", "Airtable", "기타"] },
-          { k: "booking", label: "예약 · 결제", type: "select", options: ["필요 없음", "네이버 예약 링크", "캐치테이블 링크", "스마트스토어 링크", "구글폼 · 카카오톡 채널", "토스페이먼츠", "기타"] },
-          { k: "deploy", label: "배포", type: "select", options: ["Vercel", "Netlify", "GitHub Pages", "Cloudflare Pages", "기타"] },
-          { k: "domain", label: "도메인", type: "select", options: ["무료 주소 사용", "가비아", "Cloudflare", "Namecheap", "기타"] },
-          { k: "backend", label: "홈페이지 기능", type: "text", ph: "원페이지 소개 / 네이버 예약 링크 / 단체 문의폼 저장" },
-          { k: "why", label: "이렇게 고른 이유", type: "text", ph: "처음이라 설치 없는 대화형으로, 문의는 Supabase에 저장" }
-        ]
-      },
-      {
         id: "landing",
-        card: "①",
+        card: "4-①",
         title: "홈페이지 기획서",
         desc: "전략 기획서를 근거로 원페이지의 담당 단계, 주 CTA, 섹션 구성, 첫 화면 문구를 정합니다. 실습 ① 결과물입니다.",
         points: [
@@ -378,9 +354,9 @@ export const STAGES = [
       },
       {
         id: "iterate",
-        card: "②",
-        title: "1차 버전 만들기",
-        desc: "기획서대로 AI에게 원페이지를 만들게 하고, 수정 요청을 3번 이상 하며 기록합니다. 실습 ② 결과물입니다.",
+        card: "4-②",
+        title: "테스트버전 만들기",
+        desc: "기획서대로 대화형 AI에게 원페이지 테스트버전을 만들게 하고, 수정 요청을 3번 이상 하며 기록합니다.",
         points: [
           "디자인 3요소 : 색상 코드 · 분위기 형용사 3개 · 글꼴 이름",
           "수정은 한 번에 하나, 위치 + 대상 + 변경으로 말하기",
@@ -411,37 +387,73 @@ export const STAGES = [
         ]
       },
       {
-        id: "inquiry",
-        card: "③",
-        title: "문의 저장 연결",
-        desc: "문의폼에 입력한 내용이 Supabase 표에 한 줄로 저장되게 연결합니다. 실습 ③ 결과물입니다.",
+        id: "setup",
+        title: "설치와 첫 배포",
+        desc: "Claude Code 또는 Codex로 AGENTS.md를 만들고, 홈페이지를 Firebase에 올려 web.app 주소로 공개합니다.",
         points: [
-          "publishable 키는 브라우저에 넣어도 되는 공개용, secret 키는 HTML · 프롬프트 · 캡처에 절대 넣지 않음",
-          "RLS는 항상 켜기 : 방문자는 추가(insert)만, 조회는 나만",
-          "이름 · 연락처 · 문의 내용만 수집, 수집 · 이용 동의 체크박스 필수"
+          "AI 도구는 Claude Code 또는 Codex 중 하나, Firebase CLI는 공통",
+          "AGENTS.md는 AI가 대화마다 먼저 읽는 업무 지시서, 하나만 만들기",
+          "승인 화면은 읽고 허용, 파일을 고치기 전에는 backup 폴더에 복사"
         ],
         steps: [
-          "supabase.com에 가입하고 New project로 프로젝트를 만듭니다(지역 Seoul). 상단 Connect 버튼에서 Project URL과 publishable 키를 복사합니다.",
-          "프롬프트 대괄호에 URL과 키를 넣어 1차 버전 대화창에 보내고, 받은 SQL을 SQL Editor에 붙여 넣어 실행합니다.",
-          "수정된 홈페이지를 크롬으로 열어 가짜 이름으로 문의 3건을 보내고, Table Editor에서 확인한 항목을 체크합니다. 오류는 문구를 그대로 복사해 같은 대화창에 전달합니다."
+          "nodejs.org에서 LTS를 설치하고, Claude Code 또는 Codex와 Firebase CLI(npm install -g firebase-tools)를 설치한 뒤 firebase login을 한 번 합니다.",
+          "작업 폴더(my-homepage)를 만들고 도구를 실행해 카드 5-①로 AGENTS.md를 만듭니다. 기획서 내용은 프롬프트에 자동으로 들어가 있습니다.",
+          "Firebase 콘솔에서 프로젝트와 웹 앱을 만들고, Authentication(이메일/비밀번호)과 Firestore(서울, 프로덕션 모드)를 켭니다.",
+          "카드 5-②로 홈페이지를 만들어 배포하고, web.app 주소와 AGENTS.md 파일을 아래에 올립니다."
         ],
-        prompt: {
-          body: "너는 Supabase를 다루는 웹 개발자다.\n앞의 홈페이지에 문의 섹션을 추가하고, 입력 내용이 Supabase에 저장되게 하라.\n\nProject URL : [https://프로젝트ID.supabase.co]\nPublishable key : [sb_publishable_로 시작하는 키]\n\n1) Supabase SQL Editor에 붙여 넣을 SQL을 먼저 작성하라.\n   inquiries 표 : 이름, 연락처, 문의 내용, 동의 여부, 유입 경로, 작성 시각\n   RLS를 켜고, 익명 방문자는 추가(insert)만 가능하게 하라.\n2) 수정된 홈페이지 전체 코드를 작성하라.\n   supabase-js는 CDN으로 불러오고, 제출 후 접수 완료 문구를 보여줘라.\n\n조건\n· 개인정보 수집 · 이용 동의 체크박스를 필수 항목으로 넣어라.\n· insert 뒤에 select를 붙이지 마라.\n· secret 키는 요구하지도, 코드에 넣지도 마라."
-        },
+        prompts: [
+          {
+            title: "카드 5-① 지침 파일 만들기",
+            body: "이 폴더에 AGENTS.md를 만들어라. 앞으로 모든 작업의 기준이 되는 지침이다.\n근거 자료는 이 폴더의 [홈페이지 기획서 파일명]이다.\n\n포함할 항목\n1) 서비스 한 줄 소개, 1순위 타깃, 포지셔닝 문장\n   서비스 : {{service}}\n   타깃 : {{target}}\n   포지셔닝 : {{position}}\n2) 페이지 구성 : index.html(소개), login.html(가입 · 로그인), mypage.html(내 문의)\n3) 디자인 규칙 : 주 색상 {{color}}, 글꼴 {{font}}, 스마트폰 우선\n4) 기술 규칙 : HTML · CSS · JavaScript만 사용, 백엔드와 배포는 Firebase\n5) 작업 규칙 : 파일을 고치기 전에 backup 폴더에 이전 버전을 복사\n6) 금지 규칙 : 없는 후기 · 수치 작성 금지\n\n조건\n· CLAUDE.md는 만들지 마라. 지침 파일은 AGENTS.md 하나로 한다."
+          },
+          {
+            title: "카드 5-② 홈페이지 생성과 첫 배포",
+            body: "AGENTS.md를 기준으로 public 폴더 안에 index.html을 만들어라.\n섹션 구성과 문구는 홈페이지 기획서를 그대로 따른다.\n\n1) 스마트폰 화면 기준으로 만들고 PC에서도 깨지지 않게 하라.\n2) 상단 메뉴에 \"로그인\" 버튼을 두고 login.html로 연결하라.\n   login.html은 나중에 만든다.\n3) 이 폴더를 Firebase 프로젝트 {{projectid}}의 Hosting에 연결하라.\n   공개 폴더는 public으로 한다.\n4) firebase deploy --only hosting 으로 배포하고 주소를 알려줘라.\n\n조건\n· 기획서에 없는 문구 · 후기 · 수치를 추가하지 마라.\n· 명령을 실행하기 전에 무엇을 하는 명령인지 한 줄로 설명하라."
+          }
+        ],
         files: true,
         fields: [
-          { k: "done", label: "확인한 항목", type: "checks", options: ["inquiries 표 생성", "RLS 켜짐", "insert 규칙 1개", "테스트 문의 3건 저장", "유입 경로 칸 포함", "동의 체크박스 필수", "secret 키 미포함"] },
-          { k: "error", label: "막힌 오류와 해결 (선택)", type: "text", ph: "new row violates row-level security policy : 정책 SQL 재실행" }
+          { k: "tool", label: "사용한 도구", type: "select", options: ["Claude Code", "Codex"] },
+          { k: "url", label: "배포 주소", type: "url", ph: "https://프로젝트ID.web.app" }
+        ]
+      },
+      {
+        id: "member",
+        title: "회원 기능 만들기",
+        desc: "Firebase로 회원가입 · 로그인을 붙이고, 회원이 자기 문의만 볼 수 있게 보안 규칙을 만듭니다.",
+        points: [
+          "로그인 기능은 만들지 않고 Firebase Authentication을 빌려 씀",
+          "보안 규칙은 내가 정함 : 문서의 uid가 로그인한 사람과 같을 때만 쓰고 보기",
+          "테스트 모드는 쓰지 않고, 필요한 규칙만 하나씩 추가"
+        ],
+        steps: [
+          "카드 5-③을 같은 대화에 이어서 넣어 가입 · 로그인 · 로그아웃과 접근 제한을 만듭니다.",
+          "카드 5-④로 내 문의 작성과 보안 규칙을 만들고 함께 배포합니다.",
+          "배포 주소에서 A · B 두 계정으로 테스트하고, 확인된 항목을 체크합니다. 오류는 문구를 그대로 복사해 전달합니다."
+        ],
+        prompts: [
+          {
+            title: "카드 5-③ 회원가입과 로그인",
+            body: "Firebase Authentication으로 이메일 회원가입과 로그인을 구현하라.\nFirebase 설정값은 AGENTS.md에 적힌 firebaseConfig를 사용한다.\n\n1) login.html : 회원가입과 로그인을 탭으로 전환하는 화면\n   가입 항목은 이메일, 비밀번호(8자 이상), 이름\n2) 로그인하면 mypage.html로 이동하고 상단에 \"OOO님\"을 표시하라.\n3) 모든 페이지 상단 메뉴 : 로그인 전 \"로그인\", 로그인 후 \"마이페이지 · 로그아웃\"\n4) 로그인하지 않은 사람이 mypage.html에 오면 login.html로 보내라.\n\n조건\n· Firebase SDK는 CDN으로 불러오고, 오류 문구는 한국어로 보여줘라.\n· 완료 후 배포하고 주소를 알려줘라."
+          },
+          {
+            title: "카드 5-④ 회원별 데이터 저장",
+            body: "회원만 문의를 남기고, 자기 문의만 볼 수 있게 하라.\n\n1) Firestore에 inquiries 컬렉션을 사용한다.\n   필드 : 작성자(uid), 제목, 내용, 작성 시각\n2) mypage.html에 문의 작성 폼과 \"내 문의 내역\" 목록을 만들어라.\n   목록은 로그인한 회원의 uid로 조회한다.\n3) firestore.rules에 \"본인 글만 작성 · 조회\" 규칙을 작성하라.\n4) Hosting과 규칙을 함께 배포하라.\n\n조건\n· 규칙 각 줄이 무엇을 하는지 한국어로 먼저 설명하라.\n· 다른 회원의 글은 절대 보이면 안 된다."
+          }
+        ],
+        fields: [
+          { k: "done", label: "확인한 항목", type: "checks", options: ["가입 · 로그아웃 · 로그인 동작", "로그아웃 상태로 마이페이지 접속 시 로그인 화면으로 이동", "A 계정으로 문의 2건 저장", "B 계정에서 A의 글이 보이지 않음", "콘솔 사용자 목록에 테스트 계정 2개"] },
+          { k: "error", label: "막힌 오류와 해결 (선택)", type: "text", ph: "Missing or insufficient permissions : 규칙 재배포" }
         ]
       },
       {
         id: "review",
-        card: "④",
+        card: "4-④",
         title: "게시 전 점검",
         desc: "AI가 만든 홈페이지의 위험 요소 여섯 가지를 거르고, 처음 보는 고객의 눈으로 점검합니다.",
         points: [
           "직접 눌러 보고, 스마트폰으로 열어 보고, 문구는 소리 내어 읽어 보기",
-          "카드 ④는 새 대화창에서 스마트폰 크기 화면 캡처만 첨부해 실행",
+          "카드 4-④는 새 대화창에서 스마트폰 크기 화면 캡처만 첨부해 실행",
           "AI 점검 다음은 사람 점검 : 옆 사람에게 5초만 보여주고 같은 질문"
         ],
         steps: [
@@ -453,30 +465,29 @@ export const STAGES = [
           body: "너는 {{target}}이고, 이 홈페이지를 처음 본 사람이다.\n첨부한 화면만 보고 아래 질문에 답하라.\n\n1) 첫 화면만 5초 보고 무엇을 하는 곳인지,\n   누구를 위한 곳인지 한 문장으로 말하라.\n2) 예약(구매) 버튼을 누르기 전에 망설이게 되는 지점 3개를\n   섹션 이름과 함께 지적하라.\n3) {{rivalnames}}과 비교해 이 페이지에서만 볼 수 있는\n   내용을 말하라. 없으면 없다고 하라.\n\n조건\n· 칭찬은 빼고 문제점만 써라.\n· 화면에 없는 내용은 추측하지 마라."
         },
         fields: [
-          { k: "safe", label: "여섯 가지 점검 (문제 없음 확인)", type: "checks", options: ["지어낸 후기 · 수치 없음", "모든 버튼이 실제로 연결됨", "직접 찍은 이미지만 사용", "스마트폰에서 깨지지 않음", "우리만의 구체적인 문구", "입력폼에 동의 절차 있음"] },
-          { k: "five", label: "5초 한 문장 (카드 ④ 1번 답)", type: "text" },
+          { k: "safe", label: "점검 (문제 없음 확인)", type: "checks", options: ["지어낸 후기 · 수치 없음", "모든 버튼이 실제로 연결됨", "직접 찍은 이미지만 사용", "스마트폰에서 깨지지 않음", "우리만의 구체적인 문구", "입력폼에 동의 절차 있음", "스마트폰으로 새 계정 가입 성공"] },
+          { k: "five", label: "5초 한 문장 (카드 4-④ 1번 답)", type: "text" },
           { k: "hesitate", label: "망설이는 지점 3개 (2번 답)", type: "textarea", ph: "가격 섹션 : 1인 이용 시간 기준이 없음" },
           { k: "only", label: "이 페이지에서만 볼 수 있는 내용 (3번 답)", type: "text", ph: "없으면 \"없음\"" }
         ]
       },
       {
         id: "deploy",
-        title: "인터넷에 공개하기",
-        desc: "만든 페이지를 GitHub에 올리고 배포 서비스와 연결해 누구나 접속할 수 있는 주소를 만듭니다.",
+        title: "공개하기",
+        desc: "점검에서 나온 문제를 고쳐 다시 배포하고, 최종 주소를 공개합니다. 내 도메인 연결은 선택입니다.",
         points: [
-          "GitHub에 올리고 배포 서비스와 연결하면 주소 자동 발급",
-          "도메인 구매는 선택, 먼저 무료 주소로 공개",
-          "공개 후 스마트폰에서 반드시 직접 확인"
+          "web.app 주소만으로 공개와 광고 연결이 모두 가능",
+          "고친 뒤에는 \"고친 내용 배포해줘\" 한 줄",
+          "도메인은 유료이고 연결 확인에 최대 24시간, 필요한 사람만"
         ],
         steps: [
-          "AI에게 \"이 페이지를 GitHub에 올리고 Vercel(또는 고른 곳)에 배포하는 방법을 단계별로 알려줘\"라고 요청해 따라 합니다.",
-          "발급된 주소를 스마트폰으로 열어 첫 화면, 버튼, 문의 영역이 동작하는지 확인합니다.",
-          "공개 주소를 저장합니다. 대시보드와 전체보기에 링크로 표시됩니다."
+          "점검에서 체크하지 못한 항목을 하나씩 수정 요청하고 다시 배포합니다.",
+          "스마트폰으로 최종 주소에 접속해 가입부터 마이페이지까지 직접 확인합니다.",
+          "(선택) 후이즈 등에서 산 도메인을 Firebase Hosting에 연결하고, Authentication 승인된 도메인에 추가합니다."
         ],
         fields: [
-          { k: "url", label: "공개 주소", type: "url", ph: "https://내서비스.vercel.app" },
-          { k: "platform", label: "배포한 곳", type: "select", options: ["Vercel", "GitHub Pages", "Netlify", "Cloudflare Pages", "기타"] },
-          { k: "mobile", label: "스마트폰 확인", type: "select", options: ["확인함", "아직"] },
+          { k: "url", label: "최종 주소", type: "url", ph: "https://프로젝트ID.web.app" },
+          { k: "domain", label: "내 도메인 (선택)", type: "text", ph: "mycafe.kr" },
           { k: "next", label: "다음에 고칠 것", type: "text" }
         ]
       }

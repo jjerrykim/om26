@@ -522,6 +522,17 @@ function renderResult(data, st, t, r) {
         ${log.length ? `<ol class="iter">${log.map((l, i) => `<li><span class="tnum">${i + 1}</span><div><p class="ask">${cell(l.ask)}</p>${l.result ? `<p class="res">${esc(l.result)}</p>` : ""}</div></li>`).join("")}</ol>` : ""}
         ${u ? `<a class="more mono" href="${esc(u)}" target="_blank" rel="noopener noreferrer">공유 링크 열기 ${icon("ur")}</a>` : ""}`;
     }
+    case "setup": {
+      const u = safeUrl(r.url);
+      return `<div class="live">${u ? `<a class="liveurl" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u.replace(/^https?:\/\//, "").replace(/\/$/, ""))} ${icon("ur")}</a>` : `<p class="muted">배포 주소 없음</p>`}
+        <div class="livemeta">${r.tool ? `<span class="pill">${esc(r.tool)}</span>` : ""}<span class="pill">Firebase Hosting</span></div></div>`;
+    }
+    case "member": {
+      const f = t.fields.find(x => x.k === "done");
+      return `<ol class="flowline">${[["가입", "회원 생성"], ["로그인", "상태 유지"], ["데이터 요청", "누가 요청하는지"], ["보안 규칙", "본인 글만"], ["마이페이지", "내 문의 내역"]].map(([k, v]) => `<li><b>${k}</b><span>${v}</span></li>`).join("")}</ol>
+        ${checksHtml(f.options, r.done)}
+        ${r.error ? `<p class="dnote"><span class="mono muted">막힌 오류와 해결</span>${cell(r.error)}</p>` : ""}`;
+    }
     case "inquiry": {
       const f = t.fields.find(x => x.k === "done");
       return `<ol class="flowline">${[["내 홈페이지", "문의폼 입력"], ["publishable 키", "공개용 키만"], ["Supabase API", "RLS 규칙 확인"], ["inquiries 표", "한 줄 저장"], ["대시보드", "Table Editor"]].map(([k, v]) => `<li><b>${k}</b><span>${v}</span></li>`).join("")}</ol>
@@ -539,7 +550,7 @@ function renderResult(data, st, t, r) {
     case "deploy": {
       const u = safeUrl(r.url);
       return `<div class="live">${u ? `<a class="liveurl" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u.replace(/^https?:\/\//, "").replace(/\/$/, ""))} ${icon("ur")}</a>` : `<p class="muted">공개 주소 없음</p>`}
-        <div class="livemeta">${r.platform ? `<span class="pill">${esc(r.platform)}</span>` : ""}${r.mobile ? `<span class="pill${r.mobile === "확인함" ? " paid" : ""}">스마트폰 ${esc(r.mobile)}</span>` : ""}</div>
+        <div class="livemeta">${r.domain ? `<span class="pill paid">${esc(r.domain)}</span>` : ""}${r.platform ? `<span class="pill">${esc(r.platform)}</span>` : ""}${r.mobile ? `<span class="pill${r.mobile === "확인함" ? " paid" : ""}">스마트폰 ${esc(r.mobile)}</span>` : ""}</div>
         ${r.next ? `<p class="dnote"><span class="mono muted">다음에 고칠 것</span>${cell(r.next)}</p>` : ""}</div>`;
     }
     case "channels": {
@@ -732,12 +743,12 @@ function mountTask(st, index) {
         <h2 class="sec-h">따라하기</h2>
         <ol class="follow">${t.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>
       </section>
-      ${t.prompt ? `<section class="sec">
+      ${promptsOf(t).length ? `<section class="sec">
         <h2 class="sec-h">프롬프트<span id="prompt-hint"></span></h2>
-        <div class="prompt">
+        ${promptsOf(t).map((p, i) => `${p.title ? `<h3 class="ptitle">${esc(p.title)}</h3>` : ""}<div class="prompt">
           <button class="btn ghost sm copy" type="button" data-act="copy">${icon("copy")}복사하기</button>
-          <pre id="prompt-body"></pre>
-        </div>
+          <pre class="prompt-body" data-i="${i}"></pre>
+        </div>`).join("")}
       </section>` : ""}
       ${t.files ? `<section class="sec">
         <h2 class="sec-h">연습 파일<span>만든 index.html 등을 올리면 대시보드에서 누구나 열어 볼 수 있습니다</span></h2>
@@ -773,48 +784,62 @@ function paintTask(st, index) {
   const t = st.tasks[index];
   const data = me() || {};
   $("task-tabs").innerHTML = st.tasks.map((x, j) => `<a href="#/stage/${st.id}/${j + 1}" ${j === index ? 'aria-current="page"' : ""} class="${taskDone(data, st, x) ? "ok" : ""}"><span class="mono">${pad(j + 1)}</span>${esc(x.title)}${taskDone(data, st, x) ? icon("check") : ""}</a>`).join("");
-  if (t.prompt) {
-    let body = t.prompt.body;
-    let hint = "";
-    if (body.includes("{{business}}")) {
-      const b = businessText(data);
-      body = body.replace("{{business}}", b || t.prompt.fallback);
-      hint = b ? "내 비즈니스 정리가 자동으로 들어갔습니다" : "1단계를 저장하면 [ ] 자리가 자동으로 채워집니다";
-    }
-    const strat = stageOf("strategy");
-    const res = id => resultOf(data, strat, strat.tasks.find(x => x.id === id)) || {};
-    const fills = {
-      summary: (() => { const m = res("summary"); return hasValue(m) ? `나는 ${m.target}에게 ${m.value}${josa(m.value || "", "을", "를")} ${m.channel}${josa(m.channel || "", "으로", "로")} 전달해 ${m.stage} 단계를 공략한다` : ""; })(),
-      position: res("stp").position || "",
-      target: (() => { const p = res("stp"); const i = parseInt(String(p.first || "").replace(/\D/g, ""), 10) - 1; return p.segs?.[i]?.name || ""; })(),
-      home: (() => { const j = res("journey"); return j.home ? `${j.home}${j.homeWhy ? ` (${j.homeWhy})` : ""}` : ""; })(),
-      pages: res("bench").pages || "",
-      journey: (() => { const j = res("journey"); const rows = stageOf("strategy").tasks.find(x => x.id === "journey").fields[0].rows; return (j.rows || []).some(hasValue) ? rows.map((n, i) => { const v = j.rows[i] || {}; return `${n} : ${[v.act, v.ch, v.worry, v.give].map(x => x || "-").join(" / ")}`; }).join("\n") : ""; })(),
-      rivals: (() => { const r = res("rivals"); const l = (r.list || []).filter(hasValue); return l.length ? l.map(c => `${c.name || "-"} / ${c.price || "-"} / 강점 ${c.plus || "-"} / 약점 ${c.minus || "-"}`).join("\n") + (r.diff ? `\n다르게 할 지점 : ${String(r.diff).replace(/\n/g, ", ")}` : "") : ""; })(),
-      rivalnames: (() => { const n = (res("rivals").list || []).map(c => c?.name).filter(Boolean); return n.length ? n.join(" · ") : ""; })(),
-      ctalink: safeUrl(resultOf(data, stageOf("vibecoding"), stageOf("vibecoding").tasks.find(x => x.id === "landing"))?.ctaLink) || ""
-    };
-    const FILL = /\{\{(summary|position|target|home|pages|journey|rivals|rivalnames|ctalink)\}\}/g;
-    const blank = { ctalink: "[실제 링크]", target: "[1순위 타깃]", rivalnames: "[경쟁사 상호 3곳]" };
-    let missing = 0;
-    const used = FILL.test(t.prompt.body);
-    body = body.replace(FILL, (_, k) => fills[k] || (missing++, blank[k] || `[2단계에서 작성]`));
-    if (used) hint = missing ? `앞 과제 결과 중 ${missing}곳이 비어 있습니다. 해당 과제를 먼저 저장하거나 직접 채우세요` : "앞 과제 결과가 자동으로 들어갔습니다";
-    if (body.includes("{{urls}}")) {
-      const r = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "bench"));
-      const urls = (r?.list || []).map(x => safeUrl(x?.url)).filter(Boolean);
-      body = body.replace("{{urls}}", urls.length ? urls.join("\n") : t.prompt.fallback);
-      hint = urls.length ? "저장한 주소가 들어갔습니다" : "아래에 주소를 저장하면 자동으로 채워집니다";
-    }
-    $("prompt-body").textContent = body;
-    $("prompt-hint").textContent = hint;
-  }
+  const hints = [];
+  promptsOf(t).forEach((p, i) => {
+    const out = fillPrompt(p, data);
+    const pre = document.querySelector(`.prompt-body[data-i="${i}"]`);
+    if (pre) pre.textContent = out.body;
+    if (out.hint) hints.push(out.hint);
+  });
+  if ($("prompt-hint")) $("prompt-hint").textContent = hints.find(h => /비어/.test(h)) || hints[0] || "";
   if ($("files")) $("files").innerHTML = filesHtml(app.user.uid, data, taskKey(st, t), true) || `<p class="empty-line mono">아직 올린 파일이 없습니다</p>`;
   const f = $("rform");
   if (f && !f.dataset.dirty && !f.contains(document.activeElement)) fillForm(f, t, resultOf(data, st, t) || {});
 }
+const promptsOf = t => t.prompts || (t.prompt ? [t.prompt] : []);
+// 프롬프트의 {{키}} 자리를 앞 과제 결과로 채움
+function fillPrompt(p, data) {
+  let body = p.body, hint = "";
+  if (body.includes("{{business}}")) {
+    const b = businessText(data);
+    body = body.replace("{{business}}", b || p.fallback);
+    hint = b ? "내 비즈니스 정리가 자동으로 들어갔습니다" : "1단계를 저장하면 [ ] 자리가 자동으로 채워집니다";
+  }
+  const strat = stageOf("strategy"), vibe = stageOf("vibecoding");
+  const res = id => resultOf(data, strat, strat.tasks.find(x => x.id === id)) || {};
+  const vres = id => resultOf(data, vibe, vibe.tasks.find(x => x.id === id)) || {};
+  const biz = resultOf(data, stageOf("product"), stageOf("product").tasks[0]) || {};
+  const fills = {
+    summary: (() => { const m = res("summary"); return hasValue(m) ? `나는 ${m.target}에게 ${m.value}${josa(m.value || "", "을", "를")} ${m.channel}${josa(m.channel || "", "으로", "로")} 전달해 ${m.stage} 단계를 공략한다` : ""; })(),
+    position: res("stp").position || "",
+    target: (() => { const q = res("stp"); const i = parseInt(String(q.first || "").replace(/\D/g, ""), 10) - 1; return q.segs?.[i]?.name || ""; })(),
+    home: (() => { const j = res("journey"); return j.home ? `${j.home}${j.homeWhy ? ` (${j.homeWhy})` : ""}` : ""; })(),
+    pages: res("bench").pages || "",
+    journey: (() => { const j = res("journey"); const rows = strat.tasks.find(x => x.id === "journey").fields[0].rows; return (j.rows || []).some(hasValue) ? rows.map((n, i) => { const v = j.rows[i] || {}; return `${n} : ${[v.act, v.ch, v.worry, v.give].map(x => x || "-").join(" / ")}`; }).join("\n") : ""; })(),
+    rivals: (() => { const r = res("rivals"); const l = (r.list || []).filter(hasValue); return l.length ? l.map(c => `${c.name || "-"} / ${c.price || "-"} / 강점 ${c.plus || "-"} / 약점 ${c.minus || "-"}`).join("\n") + (r.diff ? `\n다르게 할 지점 : ${String(r.diff).replace(/\n/g, ", ")}` : "") : ""; })(),
+    rivalnames: (() => { const n = (res("rivals").list || []).map(c => c?.name).filter(Boolean); return n.length ? n.join(" · ") : ""; })(),
+    ctalink: safeUrl(vres("landing").ctaLink) || "",
+    service: biz.q1 || "",
+    color: vres("iterate").color || "",
+    font: vres("iterate").font || "",
+    projectid: (() => { const m = String(vres("setup").url || "").match(/^https?:\/\/([a-z0-9-]+)\.(web\.app|firebaseapp\.com)/i); return m ? m[1] : ""; })()
+  };
+  const FILL = /\{\{(summary|position|target|home|pages|journey|rivals|rivalnames|ctalink|service|color|font|projectid)\}\}/g;
+  const blank = { ctalink: "[실제 링크]", target: "[1순위 타깃]", rivalnames: "[경쟁사 상호 3곳]", color: "[#색상코드]", font: "Pretendard", projectid: "[프로젝트 ID]", service: "[서비스 한 줄]" };
+  let missing = 0;
+  const used = FILL.test(p.body);
+  body = body.replace(FILL, (_, k) => fills[k] || (k === "font" || k === "projectid" ? blank[k] : (missing++, blank[k] || "[2단계에서 작성]")));
+  if (used) hint = missing ? `앞 과제 결과 중 ${missing}곳이 비어 있습니다. 해당 과제를 먼저 저장하거나 직접 채우세요` : "앞 과제 결과가 자동으로 들어갔습니다";
+  if (body.includes("{{urls}}")) {
+    const r = res("bench");
+    const urls = (r?.list || []).map(x => safeUrl(x?.url)).filter(Boolean);
+    body = body.replace("{{urls}}", urls.length ? urls.join("\n") : p.fallback);
+    hint = urls.length ? "저장한 주소가 들어갔습니다" : "아래에 주소를 저장하면 자동으로 채워집니다";
+  }
+  return { body, hint };
+}
 async function copyPrompt(btn) {
-  const text = $("prompt-body").textContent;
+  const text = btn.closest(".prompt")?.querySelector("pre")?.textContent || "";
   try { await navigator.clipboard.writeText(text); }
   catch {
     const ta = document.createElement("textarea");
@@ -914,7 +939,7 @@ const DERIVE = {
     return { target, value: firstLine(get("strategy_rivals").diff) || get("strategy_stp").position || "", channel: String(ch).split(/[,/]/)[0].trim(), stage: j.home || "" };
   },
   vibecoding_landing: () => landingDefaults(),
-  vibecoding_deploy: ({ get }) => ({ url: get("vibecoding_iterate").preview || "", platform: get("vibecoding_stack").deploy || "" }),
+  vibecoding_deploy: ({ get }) => ({ url: get("vibecoding_setup").url || get("vibecoding_iterate").preview || "" }),
   execution_channels: ({ get }) => { const m = get("strategy_summary"); return { why: m.channel ? `전략 한 문장의 채널 ${m.channel} · ${m.stage || ""} 단계 공략`.trim() : "" }; }
 };
 function derive(st, t) {
