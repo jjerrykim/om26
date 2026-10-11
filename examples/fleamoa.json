@@ -185,7 +185,7 @@
   "vibecoding_landing": {
    "stage": "비교탐색",
    "cta": "무료로 마켓 등록하기",
-   "ctaLink": "",
+   "ctaLink": "https://fleamoa.com",
    "hero": "셀러 모집 공고부터 심사까지 무료로",
    "sub": "셀러 모집을 직접 처리하는 소규모 플리마켓 운영자를 위한 모집 · 지원 · 심사 플랫폼",
    "plan": [
@@ -254,7 +254,7 @@
   },
   "vibecoding_setup": {
    "tool": "Claude Code",
-   "url": ""
+   "url": "https://fleamoa.com"
   },
   "vibecoding_member": {
    "done": [
@@ -277,8 +277,8 @@
    "only": "지원 · 결과를 카카오톡으로 알려 주는 점"
   },
   "vibecoding_deploy": {
-   "url": "",
-   "domain": "",
+   "url": "https://fleamoa.com",
+   "domain": "fleamoa.com",
    "next": "마켓 상세 페이지 제목에 지역 · 날짜 · 셀러 모집 넣기"
   },
   "execution_channels": {
