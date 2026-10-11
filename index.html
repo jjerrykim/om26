@@ -533,10 +533,14 @@
   .pm-best { fill: color-mix(in srgb, var(--signal) 7%, transparent); }
   .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
   .kpi { display: grid; gap: 4px; padding: 18px 20px 20px; border-top: 3px solid var(--signal); background: color-mix(in srgb, var(--ink) 3%, var(--paper)); }
-  .kv { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-top: 8px; }
+  .kv { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 10px; margin-top: 10px; }
+  .kvc { display: grid; gap: 2px; min-width: 0; }
+  .kvc small { font-size: 12px; color: var(--ink-3); }
   .kv .now { color: var(--ink-3); font-size: var(--fs-body); }
   .kv .ic { width: 16px; height: 16px; color: var(--ink-3); align-self: center; }
-  .kv b { font-size: var(--fs-num); font-weight: 650; line-height: 1.1; letter-spacing: -0.02em; color: var(--signal); }
+  .kv b { font-size: clamp(20px, 1.8vw, 24px); font-weight: 700; line-height: 1.25; letter-spacing: -0.02em; color: var(--signal); overflow-wrap: anywhere; }
+  .kv .now { line-height: 1.4; }
+  .kv .ic { margin-bottom: 4px; }
   .weak { margin-top: 12px; }
   .weak .pane p { display: flex; gap: 10px; align-items: baseline; }
   .pill { flex: none; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: var(--signal); border: 1px solid var(--signal); }
@@ -882,53 +886,83 @@
   .dlbtn:disabled .n { color: var(--ink-3); background: color-mix(in srgb, var(--ink) 6%, var(--paper)); }
 
   /* 대시보드 가독성: 과제마다 카드로 묶고 내부 블록 모양 통일 */
-  #board { font-size: 15px; line-height: 1.65; }
-  #board .dcard { gap: 22px; margin-top: 20px; padding: clamp(20px, 2.6vw, 32px); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(18,18,18,.04); }
-  #board .dcard.is-empty { gap: 8px; padding: 18px clamp(20px, 2.6vw, 32px); background: color-mix(in srgb, var(--ink) 2%, var(--paper)); box-shadow: none; }
-  #board .dcard-head h3 { font-size: 20px; }
-  #board .dcard-head .more { padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; font-size: 13px; letter-spacing: 0; text-transform: none; }
-  #board .dcard-head .more:hover { border-color: var(--line); background: color-mix(in srgb, var(--ink) 4%, transparent); color: var(--ink); }
-  #board .tnum { min-width: 30px; height: 30px; font-size: 13px; }
-  #board .mono { font-size: 12.5px; letter-spacing: .01em; text-transform: none; }
-  #board .muted, #board .mono.muted { color: var(--ink-2); }
-  #board li { line-height: 1.7; }
-  #board .todo { margin-top: 20px; padding: 0; border: 0; }
-  #board .todo a, #board .todo > span:not(.mono) { border-radius: 999px; padding: 6px 10px 6px 14px; }
+  :is(#board, #pboard) { font-size: 15px; line-height: 1.65; }
+  :is(#board, #pboard) .dcard { gap: 22px; margin-top: 20px; padding: clamp(20px, 2.6vw, 32px); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); box-shadow: 0 1px 2px rgba(18,18,18,.04); }
+  :is(#board, #pboard) .dcard.is-empty { gap: 8px; padding: 18px clamp(20px, 2.6vw, 32px); background: color-mix(in srgb, var(--ink) 2%, var(--paper)); box-shadow: none; }
+  :is(#board, #pboard) .dcard-head h3 { font-size: 20px; }
+  :is(#board, #pboard) .dcard-head .more { padding: 6px 12px; border: 1px solid var(--rule); border-radius: 999px; font-size: 13px; letter-spacing: 0; text-transform: none; }
+  :is(#board, #pboard) .dcard-head .more:hover { border-color: var(--line); background: color-mix(in srgb, var(--ink) 4%, transparent); color: var(--ink); }
+  :is(#board, #pboard) .tnum { min-width: 30px; height: 30px; font-size: 13px; }
+  :is(#board, #pboard) .mono { font-size: 12.5px; letter-spacing: .01em; text-transform: none; }
+  :is(#board, #pboard) .muted, :is(#board, #pboard) .mono.muted { color: var(--ink-2); }
+  :is(#board, #pboard) li { line-height: 1.7; }
+  :is(#board, #pboard) .todo { margin-top: 20px; padding: 0; border: 0; }
+  :is(#board, #pboard) .todo a, :is(#board, #pboard) .todo > span:not(.mono) { border-radius: 999px; padding: 6px 10px 6px 14px; }
   /* 내부 블록 : 모서리 둥글게, 테두리 대신 옅은 바탕 */
-  #board .canvas, #board .swot-m, #board .journey, #board .stack { border-radius: var(--r); }
-  #board .canvas > .ctile:first-of-type { border-top-left-radius: var(--r); }
-  #board .ctile, #board .q, #board .journey li, #board .layer { border-radius: 0; }
-  #board .swot-m .q { border-radius: var(--r-sm); }
-  #board .journey { gap: 6px; }
-  #board .journey li { border-radius: var(--r); }
-  #board .journey li::before { display: none; }
-  #board .journey li.on { box-shadow: inset 0 0 0 1.5px var(--signal); }
-  #board .swot-m { gap: 6px; }
-  #board .stack { gap: 6px; }
-  #board .layer { border-radius: var(--r); }
-  #board .canvas { gap: 6px; }
-  #board .ctile { border-radius: var(--r); }
-  #board .c3 { gap: 12px; }
-  #board .c3col { padding: 18px 20px 20px; border-top: 0; border-radius: var(--r); background: color-mix(in srgb, var(--ink) 3%, var(--paper)); }
-  #board .c3col h4 { font-size: 19px; }
-  #board .pest, #board .dnote { border-radius: var(--r); }
-  #board .kpi { border-top: 0; border-radius: var(--r); }
-  #board .xcard, #board .rcard, #board .seg, #board .pane { border-radius: var(--r); }
-  #board .diff { color: var(--ink); background: color-mix(in srgb, var(--signal) 7%, var(--paper)); border-radius: var(--r); }
-  #board .diff .mono { color: var(--signal); opacity: 1; }
-  #board .pmap svg { border-radius: var(--r); }
-  #board .chips span { border-radius: 999px; padding: 2px 10px; }
-  #board .flowline li { border-radius: var(--r); }
-  #board .tbl-wrap { border: 1px solid var(--rule); border-radius: var(--r); }
-  #board .tbl th, #board .tbl td { padding: 12px 14px; }
-  #board .tbl tr:last-child > * { border-bottom: 0; }
-  #board .position { font-size: clamp(20px, 2vw, 24px); }
-  #board .tree-wrap { padding: 8px 4px 12px; }
-  #board .sources { margin-top: 28px; }
+  :is(#board, #pboard) .canvas, :is(#board, #pboard) .swot-m, :is(#board, #pboard) .journey, :is(#board, #pboard) .stack { border-radius: var(--r); }
+  :is(#board, #pboard) .canvas > .ctile:first-of-type { border-top-left-radius: var(--r); }
+  :is(#board, #pboard) .ctile, :is(#board, #pboard) .q, :is(#board, #pboard) .journey li, :is(#board, #pboard) .layer { border-radius: 0; }
+  :is(#board, #pboard) .swot-m .q { border-radius: var(--r-sm); }
+  :is(#board, #pboard) .journey { gap: 6px; }
+  :is(#board, #pboard) .journey li { border-radius: var(--r); }
+  :is(#board, #pboard) .journey li::before { display: none; }
+  :is(#board, #pboard) .journey li.on { box-shadow: inset 0 0 0 1.5px var(--signal); }
+  :is(#board, #pboard) .swot-m { gap: 6px; }
+  :is(#board, #pboard) .stack { gap: 6px; }
+  :is(#board, #pboard) .layer { border-radius: var(--r); }
+  :is(#board, #pboard) .canvas { gap: 6px; }
+  :is(#board, #pboard) .ctile { border-radius: var(--r); }
+  :is(#board, #pboard) .c3 { gap: 12px; }
+  :is(#board, #pboard) .c3col { padding: 18px 20px 20px; border-top: 0; border-radius: var(--r); background: color-mix(in srgb, var(--ink) 3%, var(--paper)); }
+  :is(#board, #pboard) .c3col h4 { font-size: 19px; }
+  :is(#board, #pboard) .pest, :is(#board, #pboard) .dnote { border-radius: var(--r); }
+  :is(#board, #pboard) .kpi { border-top: 0; border-radius: var(--r); }
+  :is(#board, #pboard) .xcard, :is(#board, #pboard) .rcard, :is(#board, #pboard) .seg, :is(#board, #pboard) .pane { border-radius: var(--r); }
+  :is(#board, #pboard) .diff { color: var(--ink); background: color-mix(in srgb, var(--signal) 7%, var(--paper)); border-radius: var(--r); }
+  :is(#board, #pboard) .diff .mono { color: var(--signal); opacity: 1; }
+  :is(#board, #pboard) .pmap svg { border-radius: var(--r); }
+  :is(#board, #pboard) .chips span { border-radius: 999px; padding: 2px 10px; }
+  :is(#board, #pboard) .flowline li { border-radius: var(--r); }
+  :is(#board, #pboard) .tbl-wrap { border: 1px solid var(--rule); border-radius: var(--r); }
+  :is(#board, #pboard) .tbl th, :is(#board, #pboard) .tbl td { padding: 12px 14px; }
+  :is(#board, #pboard) .tbl tr:last-child > * { border-bottom: 0; }
+  :is(#board, #pboard) .position { font-size: clamp(20px, 2vw, 24px); }
+  :is(#board, #pboard) .tree-wrap { padding: 8px 4px 12px; }
+  :is(#board, #pboard) .sources { margin-top: 28px; }
   @media (max-width: 640px) {
-    #board .dcard { padding: 18px 16px; }
-    #board .dcard-head h3 { font-size: 18px; }
+    :is(#board, #pboard) .dcard { padding: 18px 16px; }
+    :is(#board, #pboard) .dcard-head h3 { font-size: 18px; }
   }
+
+  /* 인쇄 · PDF */
+  .printbar { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+  #print-root { display: none; }
+  .ph { padding-bottom: 18px; margin-bottom: 8px; border-bottom: 2px solid var(--ink); }
+  .ph-course { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--signal); }
+  .ph h1 { margin: 0 0 12px; font-size: 30px; letter-spacing: -0.02em; }
+  .ph dl { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 0; }
+  .ph dl div { display: flex; gap: 8px; }
+  .ph dt { color: var(--ink-3); font-size: 13px; }
+  .ph dd { margin: 0; font-weight: 600; font-size: 13px; }
+  .ph .oneline { margin-top: 14px; padding: 14px 0 0; border-top: 1px solid var(--rule); border-bottom: 0; }
+  .ph .oneline p { font-size: 18px; }
+  .p-left { margin: 14px 0 0; font-size: 13px; color: var(--ink-3); }
+  @media print {
+    @page { size: A4; margin: 12mm; }
+    html, body { background: #fff; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body.printing::before { display: none; }
+    body.printing > *:not(#print-root) { display: none !important; }
+    body.printing #print-root { display: block; font-size: 13px; }
+    #pboard .dash-stage { padding-top: 18px; }
+    #pboard .dash-stage + .dash-stage { break-before: page; }
+    #pboard .dcard { break-inside: avoid; box-shadow: none; margin-top: 12px; }
+    #pboard .tree-wrap { overflow: visible; }
+    #pboard .tree { zoom: .72; }
+    #pboard .stage-num { font-size: 32px; }
+    #pboard a { text-decoration: none; }
+  }
+  @media (max-width: 640px) { .printbar { justify-content: flex-start; } }
 </style>
 </head>
 <body>

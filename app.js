@@ -53,7 +53,8 @@ const ICON = {
   check: "M5 12.5l4.5 4.5L19 7.5",
   copy: "M9 9h10v10H9zM5 15V5h10",
   down2: "M12 4v11M7 10l5 5 5-5M5 20h14",
-  plus: "M12 5v14M5 12h14"
+  plus: "M12 5v14M5 12h14",
+  print: "M7 9V4h10v5M7 17H5V10h14v7h-2M7 14h10v6H7z"
 };
 const icon = k => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[k]}"/></svg>`;
 
@@ -297,7 +298,8 @@ const dashTab = {};
 function mountDashboard(uid) {
   dashAnim = true;
   const mine = uid === app.user?.uid;
-  const side = `<div class="side"><dl class="facts" id="facts"></dl></div>`;
+  const side = `<div class="side"><dl class="facts" id="facts"></dl>
+    <div class="printbar"><button class="btn ghost sm" type="button" data-print="stage">${icon("print")}이 단계 인쇄</button><button class="btn ghost sm" type="button" data-print="all">${icon("print")}전체 인쇄</button></div></div>`;
   $("view").innerHTML = `
     <header class="intro">
       <div>${mine || uid === "case" ? "" : backLink("#/class", "전체보기")}<h1 id="headline"></h1></div>
@@ -308,6 +310,7 @@ function mountDashboard(uid) {
     <div id="oneline"></div>
     <nav class="dash-tabs" aria-label="과정 단계"><ol class="flow" id="flow" role="tablist"></ol></nav>
     <main id="board"></main>`;
+  $("view").querySelector(".printbar").addEventListener("click", e => { const b = e.target.closest("[data-print]"); if (b) printDash(uid, b.dataset.print); });
 }
 function paintDashboard(uid) {
   const mine = uid === app.user?.uid;
@@ -367,21 +370,48 @@ function paintDashboard(uid) {
   animateDashboard(Boolean(s));
 }
 
-function paintBoard(uid, data, mine) {
-  const i = STAGES.findIndex(x => x.id === dashTab[uid]);
-  const st = STAGES[i];
-  $("board").innerHTML = `
-    <section class="dash-stage" id="dash-${st.id}" role="tabpanel">
+function stageHtml(data, st, mine, print) {
+  const i = STAGES.indexOf(st);
+  const shown = st.tasks.filter(t => taskDone(data, st, t) || hasFiles(data, st, t));
+  const left = st.tasks.filter(t => !shown.includes(t));
+  return `
+    <section class="dash-stage" id="${print ? "p" : ""}dash-${st.id}" ${print ? "" : 'role="tabpanel"'}>
       <div class="dash-head">
         <span class="stage-num">${pad(i + 1)}</span>
         <div><h2>${esc(st.name)}</h2><p>${esc(st.desc)}</p></div>
-        ${mine ? `<a class="more mono" href="#/stage/${st.id}">열기 ${icon("right")}</a>` : ""}
+        ${mine && !print ? `<a class="more mono" href="#/stage/${st.id}">열기 ${icon("right")}</a>` : ""}
       </div>
-      ${st.tasks.filter(t => taskDone(data, st, t) || hasFiles(data, st, t)).map(t => dashTask(data, st, t, st.tasks.indexOf(t), mine)).join("")}
-      ${todoHtml(data, st, mine)}
+      ${shown.map(t => dashTask(data, st, t, st.tasks.indexOf(t), mine && !print)).join("")}
+      ${print ? (left.length ? `<p class="p-left">작성하지 않은 과제 : ${left.map(t => esc(t.title)).join(", ")}</p>` : "") : todoHtml(data, st, mine)}
       ${st.tasks.length ? "" : `<p class="empty mono">준비 중</p>`}
-    </section>` + sourcesHtml(data);
+    </section>`;
+}
+function paintBoard(uid, data, mine) {
+  $("board").innerHTML = stageHtml(data, stageOf(dashTab[uid]), mine, false) + sourcesHtml(data);
   foldTrees($("board"));
+}
+/* 인쇄 · PDF : 맨 위에 개인 정보, 이어서 현재 단계 또는 전체 단계 */
+function printDash(uid, mode) {
+  const data = (uid === "case" ? CASE : app.students.get(uid)) || {};
+  const stages = mode === "all" ? STAGES : [stageOf(dashTab[uid]) || STAGES[0]];
+  const facts = data.facts || [["학과", data.dept], ["학번", data.sid]];
+  const d = new Date();
+  const day = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
+  let root = $("print-root");
+  if (!root) { root = document.createElement("div"); root.id = "print-root"; document.body.appendChild(root); }
+  const one = $("oneline")?.innerHTML || "";
+  root.innerHTML = `
+    <header class="ph">
+      <p class="ph-course">온라인마케팅실전 2026 · 학습 포트폴리오</p>
+      <h1>${esc(data.name || "")}</h1>
+      <dl>${facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v || "-")}</dd></div>`).join("")}<div><dt>완료한 과제</dt><dd>${doneCount(data)} / ${allTasks().length}</dd></div><div><dt>범위</dt><dd>${mode === "all" ? "전체 단계" : esc(stages[0].name)}</dd></div><div><dt>출력일</dt><dd>${day}</dd></div></dl>
+      ${one}
+    </header>
+    <main id="pboard">${stages.map(st => stageHtml(data, st, false, true)).join("")}</main>`;
+  document.body.classList.add("printing");
+  const done = () => { document.body.classList.remove("printing"); root.innerHTML = ""; window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  window.print();
 }
 function sourcesHtml(data) {
   if (!data.sources?.length) return "";
@@ -514,7 +544,7 @@ function renderResult(data, st, t, r) {
       const weak = (r.weak || []).filter(hasValue);
       return `${goals.length ? `<div class="kpis">${goals.map(g => `
           <div class="kpi"><span class="mono muted">${esc(g.channel || "채널")}</span><h4>${esc(g.metric || "지표")}</h4>
-            <div class="kv"><span class="now">${esc(g.now || "측정 필요")}</span>${icon("right")}<b class="${/\d/.test(g.target || "") ? "" : "txt"}">${esc(g.target || "-")}</b></div></div>`).join("")}</div>` : ""}
+            <div class="kv"><span class="kvc"><small>현재</small><span class="now">${esc(g.now || "측정 필요")}</span></span>${icon("right")}<span class="kvc"><small>목표</small><b>${esc(g.target || "-")}</b></span></div></div>`).join("")}</div>` : ""}
         ${weak.length ? `<div class="grid2 weak">${weak.map(w => `<div class="pane"><span class="mono muted">약한 단계</span><h4>${esc(w.stage || "-")}</h4><p><span class="pill">0원</span>${cell(w.free)}</p><p><span class="pill paid">30만원</span>${cell(w.paid)}</p></div>`).join("")}</div>` : ""}`;
     }
     case "summary":
@@ -635,24 +665,49 @@ function checklistHtml(data) {
     return `<li class="${ok ? "ok" : ""}"><span class="box">${ok ? icon("check") : ""}</span>${esc(label)}</li>`;
   }).join("")}</ul>`;
 }
+// 축 입력 "낮음 ↔ 높음" : ↔ 외에 <->, vs, ~, /, 쉼표도 허용. 하나만 적으면 높은 쪽 끝에 표시
+function splitAxis(v) {
+  const parts = String(v || "").split(/\s*(?:↔|<->|<>|←→|⟷|\bvs\.?\b|VS|~|\/|,)\s*/).map(x => x.trim()).filter(Boolean);
+  if (parts.length >= 2) return [parts[0], parts[parts.length - 1]];
+  return ["", parts[0] || ""];
+}
 function mapSvg(r) {
   const pts = (r.map || []).map((p, i) => ({ name: p?.name || ["나", "경쟁사 1", "경쟁사 2", "경쟁사 3"][i], x: Number(p?.x), y: Number(p?.y), me: i === 0 }))
     .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y) && (p.x !== 0 || p.y !== 0 || p.me));
-  const [xl, xr] = String(r.axisX || "").split("↔").map(s => s.trim());
-  const [yb, yt] = String(r.axisY || "").split("↔").map(s => s.trim());
-  const S = 320, P = 28, C = S / 2;
+  const [xl, xr] = splitAxis(r.axisX), [yb, yt] = splitAxis(r.axisY);
+  const S = 360, P = 44, C = S / 2;
   const pos = v => C + Math.max(-5, Math.min(5, v)) / 5 * (C - P);
+  const cut = (t, n) => t.length > n ? t.slice(0, n - 1) + "…" : t;
+  // 점 이름: 오른쪽 절반의 점은 왼쪽에, 왼쪽 절반은 오른쪽에 쓰고, 같은 쪽 이름끼리 세로로 겹치지 않게 밀어냄
+  const tw = t => [...cut(t, 13)].reduce((a, ch) => a + (/[가-힣]/.test(ch) ? 12 : 7), 0);
+  const lab = pts.map(p => ({ p, cx: pos(p.x), cy: pos(-p.y), w: tw(p.name) }));
+  // 기본은 바깥쪽(오른쪽 절반은 왼쪽에), 이름 자리에 다른 점이 있거나 화면을 넘으면 반대쪽
+  lab.forEach(l => {
+    const fits = left => left ? l.cx - 11 - l.w >= 2 : l.cx + 11 + l.w <= S - 2;
+    const blocked = left => lab.some(o => o !== l && Math.abs(o.cy - l.cy) < 12 && (left ? o.cx < l.cx && o.cx > l.cx - 14 - l.w : o.cx > l.cx && o.cx < l.cx + 14 + l.w));
+    let left = l.cx > C + 20;
+    if (!fits(left) || blocked(left)) {
+      if (fits(!left) && !blocked(!left)) left = !left;
+      else if (blocked(left)) { l.below = true; l.bx = Math.max(l.w / 2 + 4, Math.min(S - l.w / 2 - 4, l.cx)); }
+    }
+    l.left = left;
+  });
+  for (const side of [true, false]) {
+    const g = lab.filter(l => !l.below && l.left === side).sort((a, b) => a.cy - b.cy);
+    let last = -Infinity;
+    g.forEach(l => { l.ty = Math.max(l.cy + 4, last + 16); last = l.ty; });
+  }
   return `<figure class="pmap">
     <svg viewBox="0 0 ${S} ${S}" role="img" aria-label="포지셔닝 맵">
       <rect x="0.5" y="0.5" width="${S - 1}" height="${S - 1}" class="pm-frame"/>
-      <rect x="${C}" y="${P / 2}" width="${C - P / 2}" height="${C - P / 2}" class="pm-best"/>
-      <line x1="${P / 2}" y1="${C}" x2="${S - P / 2}" y2="${C}" class="pm-axis"/>
-      <line x1="${C}" y1="${P / 2}" x2="${C}" y2="${S - P / 2}" class="pm-axis"/>
-      <text x="8" y="${C - 8}" class="pm-lab">${esc(xl || "")}</text>
-      <text x="${S - 8}" y="${C - 8}" class="pm-lab" text-anchor="end">${esc(xr || "")}</text>
-      <text x="${C + 8}" y="18" class="pm-lab">${esc(yt || "")}</text>
-      <text x="${C + 8}" y="${S - 10}" class="pm-lab">${esc(yb || "")}</text>
-      ${pts.map(p => { const right = p.x > 1; return `<g class="${p.me ? "pm-me" : "pm-pt"}"><circle cx="${pos(p.x)}" cy="${pos(-p.y)}" r="${p.me ? 7 : 5}"/><text x="${pos(p.x) + (right ? -12 : 12)}" y="${pos(-p.y) + 4}" text-anchor="${right ? "end" : "start"}">${esc(p.name)}</text></g>`; }).join("")}
+      <rect x="${C}" y="24" width="${C - 24}" height="${C - 24}" class="pm-best"/>
+      <line x1="10" y1="${C}" x2="${S - 10}" y2="${C}" class="pm-axis"/>
+      <line x1="${C}" y1="24" x2="${C}" y2="${S - 24}" class="pm-axis"/>
+      <text x="10" y="${C + 16}" class="pm-lab">${esc(cut(xl, 12))}</text>
+      <text x="${S - 10}" y="${C + 16}" class="pm-lab" text-anchor="end">${esc(cut(xr, 12))}</text>
+      <text x="${C + 8}" y="16" class="pm-lab">${esc(cut(yt, 18))}</text>
+      <text x="${C + 8}" y="${S - 8}" class="pm-lab">${esc(cut(yb, 18))}</text>
+      ${lab.map(l => `<g class="${l.p.me ? "pm-me" : "pm-pt"}"><title>${esc(l.p.name)}</title><circle cx="${l.cx}" cy="${l.cy}" r="${l.p.me ? 7 : 5}"/>${l.below ? `<text x="${l.bx}" y="${Math.min(S - 6, l.cy + 21)}" text-anchor="middle">` : `<text x="${l.cx + (l.left ? -11 : 11)}" y="${Math.min(S - 6, l.ty)}" text-anchor="${l.left ? "end" : "start"}">`}${esc(cut(l.p.name, 13))}</text></g>`).join("")}
     </svg>
     ${pts.length ? "" : `<figcaption class="mono muted">좌표를 입력하면 맵이 그려집니다</figcaption>`}
   </figure>`;
