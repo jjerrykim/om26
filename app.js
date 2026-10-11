@@ -675,39 +675,48 @@ function mapSvg(r) {
   const pts = (r.map || []).map((p, i) => ({ name: p?.name || ["나", "경쟁사 1", "경쟁사 2", "경쟁사 3"][i], x: Number(p?.x), y: Number(p?.y), me: i === 0 }))
     .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y) && (p.x !== 0 || p.y !== 0 || p.me));
   const [xl, xr] = splitAxis(r.axisX), [yb, yt] = splitAxis(r.axisY);
-  const S = 360, P = 44, C = S / 2;
+  const S = 360, P = 44, C = S / 2, LH = 15;
   const pos = v => C + Math.max(-5, Math.min(5, v)) / 5 * (C - P);
   const cut = (t, n) => t.length > n ? t.slice(0, n - 1) + "…" : t;
-  // 점 이름: 오른쪽 절반의 점은 왼쪽에, 왼쪽 절반은 오른쪽에 쓰고, 같은 쪽 이름끼리 세로로 겹치지 않게 밀어냄
-  const tw = t => [...cut(t, 13)].reduce((a, ch) => a + (/[가-힣]/.test(ch) ? 12 : 7), 0);
-  const lab = pts.map(p => ({ p, cx: pos(p.x), cy: pos(-p.y), w: tw(p.name) }));
-  // 기본은 바깥쪽(오른쪽 절반은 왼쪽에), 이름 자리에 다른 점이 있거나 화면을 넘으면 반대쪽
-  lab.forEach(l => {
-    const fits = left => left ? l.cx - 11 - l.w >= 2 : l.cx + 11 + l.w <= S - 2;
-    const blocked = left => lab.some(o => o !== l && Math.abs(o.cy - l.cy) < 12 && (left ? o.cx < l.cx && o.cx > l.cx - 14 - l.w : o.cx > l.cx && o.cx < l.cx + 14 + l.w));
-    let left = l.cx > C + 20;
-    if (!fits(left) || blocked(left)) {
-      if (fits(!left) && !blocked(!left)) left = !left;
-      else if (blocked(left)) { l.below = true; l.bx = Math.max(l.w / 2 + 4, Math.min(S - l.w / 2 - 4, l.cx)); }
-    }
-    l.left = left;
+  const tw = t => [...t].reduce((a, ch) => a + (/[가-힣]/.test(ch) ? 12 : 7), 0);
+  // 축 이름 : 맵 바깥 위 · 아래 여백에 두어 점 이름과 겹치지 않게, 길면 두 줄로
+  const wrap = (t, n) => { if (!t) return []; if (t.length <= n) return [t]; const sp = t.lastIndexOf(" ", n); const at = sp > n / 2 ? sp : n; return [t.slice(0, at).trim(), cut(t.slice(at).trim(), n)]; };
+  const lyt = wrap(yt && "↑ " + yt, 30), lyb = wrap(yb && "↓ " + yb, 30), lxl = wrap(xl && "← " + xl, 15), lxr = wrap(xr && xr + " →", 15);
+  const top = lyt.length * 13 + 10, xRow = Math.max(lxl.length, lxr.length);
+  const bot = 10 + lyb.length * 13 + (lyb.length && xRow ? 6 : 0) + xRow * 13 + 4;
+  const textAt = (ls, x, y, anchor) => ls.length ? `<text x="${x}" y="${y}" class="pm-lab" text-anchor="${anchor}">${ls.map((l, i) => `<tspan x="${x}" dy="${i ? 13 : 0}">${esc(l)}</tspan>`).join("")}</text>` : "";
+  const by = S + 10 + 10, xy = by + lyb.length * 13 + (lyb.length ? 6 : 0);
+  // 점 이름 : 후보 위치(바깥쪽, 안쪽, 아래, 위) 중 다른 점 · 이름과 겹치지 않는 첫 자리
+  const dots = pts.map(p => ({ p, cx: pos(p.x), cy: pos(-p.y) }));
+  const boxes = dots.map(d => ({ x1: d.cx - 8, x2: d.cx + 8, y1: d.cy - 8, y2: d.cy + 8 }));
+  const hit = b => boxes.some(o => b.x1 < o.x2 && b.x2 > o.x1 && b.y1 < o.y2 && b.y2 > o.y1) || b.x1 < 2 || b.x2 > S - 2 || b.y1 < 2 || b.y2 > S - 2;
+  const labels = dots.map(d => {
+    const name = cut(d.p.name, 14), w = tw(name);
+    const outer = d.cx > C ? "L" : "R";
+    const cand = [outer, outer === "L" ? "R" : "L", "B", "T"];
+    const boxOf = (k, dy = 0) => k === "L" ? { x1: d.cx - 11 - w, x2: d.cx - 9, y1: d.cy - 8 + dy, y2: d.cy + 6 + dy, ax: "end", tx: d.cx - 11, ty: d.cy + 4 + dy }
+      : k === "R" ? { x1: d.cx + 9, x2: d.cx + 11 + w, y1: d.cy - 8 + dy, y2: d.cy + 6 + dy, ax: "start", tx: d.cx + 11, ty: d.cy + 4 + dy }
+      : k === "B" ? { x1: d.cx - w / 2, x2: d.cx + w / 2, y1: d.cy + 9 + dy, y2: d.cy + 23 + dy, ax: "middle", tx: d.cx, ty: d.cy + 20 + dy }
+      : { x1: d.cx - w / 2, x2: d.cx + w / 2, y1: d.cy - 23 - dy, y2: d.cy - 9 - dy, ax: "middle", tx: d.cx, ty: d.cy - 12 - dy };
+    let pick = null;
+    for (let dy = 0; dy <= LH * 3 && !pick; dy += LH) for (const k of cand) { const b = boxOf(k, dy); if (!hit(b)) { pick = b; break; } }
+    if (!pick) pick = boxOf(outer);
+    // 가운데 정렬 이름이 맵 밖으로 나가지 않게
+    if (pick.ax === "middle") { const sh = Math.max(0, 4 - pick.x1) - Math.max(0, pick.x2 - (S - 4)); pick.tx += sh; pick.x1 += sh; pick.x2 += sh; }
+    boxes.push(pick);
+    return { d, name, ...pick };
   });
-  for (const side of [true, false]) {
-    const g = lab.filter(l => !l.below && l.left === side).sort((a, b) => a.cy - b.cy);
-    let last = -Infinity;
-    g.forEach(l => { l.ty = Math.max(l.cy + 4, last + 16); last = l.ty; });
-  }
   return `<figure class="pmap">
-    <svg viewBox="0 0 ${S} ${S}" role="img" aria-label="포지셔닝 맵">
+    <svg viewBox="0 ${-top} ${S} ${S + top + bot}" role="img" aria-label="포지셔닝 맵">
+      ${textAt(lyt, C, -top + 13, "middle")}
+      ${textAt(lyb, C, by, "middle")}
+      ${textAt(lxl, 2, xy, "start")}
+      ${textAt(lxr, S - 2, xy, "end")}
       <rect x="0.5" y="0.5" width="${S - 1}" height="${S - 1}" class="pm-frame"/>
       <rect x="${C}" y="24" width="${C - 24}" height="${C - 24}" class="pm-best"/>
       <line x1="10" y1="${C}" x2="${S - 10}" y2="${C}" class="pm-axis"/>
       <line x1="${C}" y1="24" x2="${C}" y2="${S - 24}" class="pm-axis"/>
-      <text x="10" y="${C + 16}" class="pm-lab">${esc(cut(xl, 12))}</text>
-      <text x="${S - 10}" y="${C + 16}" class="pm-lab" text-anchor="end">${esc(cut(xr, 12))}</text>
-      <text x="${C + 8}" y="16" class="pm-lab">${esc(cut(yt, 18))}</text>
-      <text x="${C + 8}" y="${S - 8}" class="pm-lab">${esc(cut(yb, 18))}</text>
-      ${lab.map(l => `<g class="${l.p.me ? "pm-me" : "pm-pt"}"><title>${esc(l.p.name)}</title><circle cx="${l.cx}" cy="${l.cy}" r="${l.p.me ? 7 : 5}"/>${l.below ? `<text x="${l.bx}" y="${Math.min(S - 6, l.cy + 21)}" text-anchor="middle">` : `<text x="${l.cx + (l.left ? -11 : 11)}" y="${Math.min(S - 6, l.ty)}" text-anchor="${l.left ? "end" : "start"}">`}${esc(cut(l.p.name, 13))}</text></g>`).join("")}
+      ${labels.map(l => `<g class="${l.d.p.me ? "pm-me" : "pm-pt"}"><title>${esc(l.d.p.name)}</title><circle cx="${l.d.cx}" cy="${l.d.cy}" r="${l.d.p.me ? 7 : 5}"/><text x="${l.tx}" y="${l.ty}" text-anchor="${l.ax}">${esc(l.name)}</text></g>`).join("")}
     </svg>
     ${pts.length ? "" : `<figcaption class="mono muted">좌표를 입력하면 맵이 그려집니다</figcaption>`}
   </figure>`;
