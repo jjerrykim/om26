@@ -857,8 +857,12 @@
   .dot:hover { border-color: var(--signal); color: var(--signal); z-index: 3; }
   .dot.done { color: #fff; background: var(--ink); border-color: var(--ink); }
   .dot.me { height: 32px; padding: 0 12px; color: #fff; background: var(--signal); border-color: var(--signal); font-size: 13px; z-index: 2; box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal) 18%, transparent); }
-  .avgtick { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--signal); opacity: .55; }
+  .avgtick { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: color-mix(in srgb, var(--signal) 55%, transparent); }
   .rate .track { position: relative; }
+  .rate:has(.avgtick) { padding-top: 14px; }
+  .avgtick em { position: absolute; bottom: calc(100% + 3px); left: 50%; transform: translateX(-50%); font-style: normal; font-size: 10px; line-height: 1; white-space: nowrap; color: var(--signal); }
+  .avgtick.at-l em { left: 0; transform: none; }
+  .avgtick.at-r em { left: auto; right: 0; transform: none; }
   .vsavg { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; margin: 0; padding: 16px 0; border-bottom: 1px solid var(--rule); }
   .vsavg[hidden] { display: none; }
   .vs-rank { display: inline-flex; align-items: baseline; gap: 2px; font-weight: 700; }
