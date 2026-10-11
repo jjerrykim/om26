@@ -223,6 +223,10 @@
   .roster .cnt { text-align: right; color: var(--ink-2); }
   .roster .go { color: var(--ink-3); display: grid; place-items: center; }
   .roster .go .ic { width: 16px; height: 16px; }
+  .roster li:has(.del) { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--rule); }
+  .roster li:has(.del) .r { flex: 1; min-width: 0; border-bottom: 0; }
+  .roster .del { flex: none; color: var(--ink-3); }
+  .roster .del:hover { color: #b4232a; border-color: #b4232a; background: var(--paper); }
     display: flex; justify-content: space-between; align-items: end; gap: 16px 32px; flex-wrap: wrap;
     padding: clamp(40px, 6vw, 72px) 0 20px;
   }

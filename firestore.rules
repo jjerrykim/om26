@@ -11,7 +11,7 @@ service cloud.firestore {
       allow create, update: if request.auth != null
         && request.auth.uid == uid
         && validStudent(request.resource.data);
-      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && (request.auth.uid == uid || isAdmin());
 
       // 연습 파일 내용 (파일 하나당 문서 하나)
       match /files/{fid} {
@@ -22,8 +22,14 @@ service cloud.firestore {
           && request.resource.data.name is string && request.resource.data.name.size() <= 100
           && request.resource.data.content is string && request.resource.data.content.size() <= 720000
           && request.resource.data.updatedAt == request.time;
-        allow delete: if request.auth != null && request.auth.uid == uid;
+        allow delete: if request.auth != null && (request.auth.uid == uid || isAdmin());
       }
+    }
+
+    // 교수자 계정 (학생 기록 삭제 가능)
+    function isAdmin() {
+      return request.auth.token.email_verified == true
+        && request.auth.token.email in ['kimky@kmu.ac.kr', 'jjerry.kim@gmail.com'];
     }
 
     function validStudent(d) {

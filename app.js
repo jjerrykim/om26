@@ -1178,6 +1178,7 @@ function mountClass() {
     <main><ol class="roster" id="roster"></ol></main>`;
   raceAnim = true;
   $("q").addEventListener("input", paintRoster);
+  $("roster").addEventListener("click", e => { const b = e.target.closest("[data-delstudent]"); if (b) deleteStudent(b.dataset.delstudent); });
   $("bulk")?.addEventListener("click", downloadAllFiles);
 }
 function sortedStudents() {
@@ -1238,8 +1239,22 @@ function paintRoster() {
       ${bar(d, tasks.length)}
       <span class="cnt mono">${d} / ${tasks.length}</span>
       <span class="go">${icon("right")}</span>
-    </a></li>`;
+    </a>${isAdmin() ? `<button class="btn ghost sm del" type="button" data-delstudent="${esc(uid)}">삭제</button>` : ""}</li>`;
   }).join("");
+}
+// 교수자: 학생 문서와 연습 파일 삭제
+async function deleteStudent(uid) {
+  const s = app.students.get(uid);
+  if (!s || !isAdmin()) return;
+  const info = [s.name, s.dept, s.sid].filter(Boolean).join(" · ");
+  if (!confirm(`${info}\n과제 ${doneCount(s)}개 · 연습 파일 ${Object.keys(s.files || {}).length}개\n\n이 학생의 기록을 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  const { db, fsMod } = app.fb;
+  try {
+    for (const fid of Object.keys(s.files || {})) await fsMod.deleteDoc(fsMod.doc(db, "students", uid, "files", fid));
+    await fsMod.deleteDoc(fsMod.doc(db, "students", uid));
+  } catch (err) {
+    alert(err?.code === "permission-denied" ? "삭제 권한이 없습니다. Firebase 콘솔에 새 보안 규칙을 게시했는지 확인하세요." : "삭제하지 못했습니다.");
+  }
 }
 
 /* 시작 */
