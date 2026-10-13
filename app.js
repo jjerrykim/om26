@@ -76,7 +76,7 @@ function businessText(s) {
 }
 
 /* 상태 */
-const app = { fb: null, user: null, authReady: false, students: new Map(), loaded: false, error: "" };
+const app = { fb: null, user: null, authReady: false, students: new Map(), loaded: false, error: "", notes: new Map(), notesLoaded: false };
 const configured = Boolean(firebaseConfig?.apiKey && firebaseConfig?.projectId && !/^YOUR/i.test(firebaseConfig.apiKey));
 const me = () => (app.user ? app.students.get(app.user.uid) : null);
 // 교수자 계정: 전체보기에서 연습 파일 일괄 내려받기
@@ -88,7 +88,7 @@ const isStaff = (uid, s) => (uid === app.user?.uid && isAdmin()) || STAFF_NAMES.
 const rankedStudents = () => sortedStudents().filter(([uid, s]) => !isStaff(uid, s));
 
 /* Firebase */
-let unsubscribe = null;
+let unsubscribe = null, unsubNotes = null;
 async function initFirebase() {
   const [appMod, authMod, fsMod] = await Promise.all([
     import(`${FB}/firebase-app.js`),
@@ -101,9 +101,12 @@ async function initFirebase() {
     app.user = user;
     app.authReady = true;
     if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    if (unsubNotes) { unsubNotes(); unsubNotes = null; }
     app.students.clear();
+    app.notes.clear();
     app.loaded = false;
-    if (user) listen();
+    app.notesLoaded = false;
+    if (user) { listen(); listenNotes(); }
     mounted = "";
     route();
   });
@@ -120,6 +123,19 @@ function listen() {
     app.error = err.code === "permission-denied" ? "열람 권한이 없습니다." : "자료를 불러오지 못했습니다.";
     app.loaded = true;
     paint();
+  });
+}
+// 수업노트 : 교수자가 쓰고 모두 실시간으로 읽음
+function listenNotes() {
+  const { db, fsMod } = app.fb;
+  unsubNotes = fsMod.onSnapshot(fsMod.collection(db, "notes"), snap => {
+    app.notes.clear();
+    snap.forEach(d => app.notes.set(d.id, d.data()));
+    app.notesLoaded = true;
+    if (mounted.startsWith("note:")) paintNote(mounted.slice(5));
+  }, () => {
+    app.notesLoaded = true;
+    if (mounted.startsWith("note:")) paintNote(mounted.slice(5), "노트를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.");
   });
 }
 async function login() {
@@ -153,6 +169,7 @@ function currentRoute() {
   }
   if (parts[0] === "s" && parts[1]) return { name: "student", uid: parts[1] };
   if (parts[0] === "class") return { name: "class" };
+  if (parts[0] === "note") return { name: "note", id: parts[1] || "" };
   if (parts[0] === "profile") return { name: "profile" };
   if (parts[0] === "import") return { name: "import" };
   if (parts[0] === "case") return { name: "case" };
@@ -168,6 +185,7 @@ function routeKey(r) {
   if (!app.user) return "gate";
   if (r.name === "student") return r.uid === app.user.uid ? "dash:" + r.uid : "dash:" + r.uid;
   if (r.name === "class") return "class";
+  if (r.name === "note") return "note:" + r.id;
   if (r.name === "profile") return "profile";
   if (r.name === "import") return "import";
   if (r.name === "file") return `file:${r.uid}:${r.fid}`;
@@ -186,6 +204,7 @@ function route() {
     else if (key === "gate") mountGate();
     else if (key === "class") mountClass();
     else if (key === "profile") mountProfile();
+    else if (key.startsWith("note:")) mountNote(key.slice(5));
     else if (key.startsWith("file:")) { const [, u, f] = key.split(":"); mountFile(u, f); }
     else if (key === "import") mountImport();
     else if (key.startsWith("dash:")) mountDashboard(key.slice(5));
@@ -198,6 +217,7 @@ function route() {
 function paint() {
   if (mounted === "class") paintClass();
   else if (mounted === "profile") paintProfile();
+  else if (mounted.startsWith("note:")) paintNote(mounted.slice(5));
   else if (mounted.startsWith("file:")) { const [, u, f] = mounted.split(":"); paintFile(u, f); }
   else if (mounted.startsWith("dash:")) paintDashboard(mounted.slice(5));
   else if (mounted.startsWith("stage:")) paintStage(stageOf(mounted.slice(6)));
@@ -217,6 +237,7 @@ function renderNav(r) {
   $("nav").innerHTML = `
     <a class="link" href="#/" ${dash ? 'aria-current="page"' : ""}>대시보드</a>
     <a class="link" href="#/class" ${r.name === "class" || (r.name === "student" && !dash) ? 'aria-current="page"' : ""}>전체보기</a>
+    <a class="link" href="#/note" ${r.name === "note" ? 'aria-current="page"' : ""}>수업노트</a>
     <a class="link" href="#/profile" ${r.name === "profile" ? 'aria-current="page"' : ""}>내정보</a>
     ${caseLink}
     <button class="link mono hide-sm" type="button" data-act="logout">로그아웃</button>`;
@@ -1121,6 +1142,143 @@ function onResultSubmit(e, st, t) {
 }
 
 /* 내정보 */
+/* 수업노트 */
+const sortedNotes = () => [...app.notes.entries()].sort((a, b) => String(b[1].date || "").localeCompare(String(a[1].date || "")) || (tsMs(b[1].updatedAt) - tsMs(a[1].updatedAt)));
+const tsMs = t => (t?.toMillis ? t.toMillis() : 0);
+const noteDate = d => { const m = String(d || "").match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${+m[2]}월 ${+m[3]}일` : ""; };
+function sinceText(t) {
+  const ms = tsMs(t);
+  if (!ms) return "";
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 60) return "방금 수정";
+  if (s < 3600) return `${Math.floor(s / 60)}분 전 수정`;
+  const d = new Date(ms);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${pad(d.getHours())}:${pad(d.getMinutes())} 수정`;
+}
+// 링크는 누를 수 있게, # 제목, - 목록, ``` 코드 블록(복사 버튼) 지원
+function linkify(t) {
+  return esc(t).replace(/https?:\/\/[^\s<]+[^\s<.,)\]'"]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+function noteBodyHtml(body) {
+  const out = [], lines = String(body || "").split("\n");
+  let list = null, code = null, para = [];
+  const flushPara = () => { if (para.length) { out.push(`<p>${para.map(linkify).join("<br>")}</p>`); para = []; } };
+  const flushList = () => { if (list) { out.push(`<ul>${list.map(l => `<li>${linkify(l)}</li>`).join("")}</ul>`); list = null; } };
+  for (const line of lines) {
+    if (code) {
+      if (/^```/.test(line.trim())) { out.push(`<div class="prompt"><button class="btn ghost sm copy" type="button" data-act="copy">${icon("copy")}복사하기</button><pre>${esc(code.join("\n"))}</pre></div>`); code = null; }
+      else code.push(line);
+      continue;
+    }
+    if (/^```/.test(line.trim())) { flushPara(); flushList(); code = []; continue; }
+    const h = line.match(/^#{1,3}\s+(.+)/), li = line.match(/^\s*[-*•]\s+(.+)/);
+    if (h) { flushPara(); flushList(); out.push(`<h3>${linkify(h[1])}</h3>`); }
+    else if (li) { flushPara(); (list ||= []).push(li[1]); }
+    else if (!line.trim()) { flushPara(); flushList(); }
+    else { flushList(); para.push(line); }
+  }
+  if (code) out.push(`<div class="prompt"><button class="btn ghost sm copy" type="button" data-act="copy">${icon("copy")}복사하기</button><pre>${esc(code.join("\n"))}</pre></div>`);
+  flushPara(); flushList();
+  return out.join("");
+}
+let noteTick = null;
+function mountNote(id) {
+  clearInterval(noteTick);
+  $("view").innerHTML = `
+    <header class="class-head">
+      <div><h1>수업노트</h1><p class="mono muted">수업 중 기록이 실시간으로 올라옵니다. 새로고침하지 않아도 됩니다</p></div>
+      ${isAdmin() ? `<button class="btn" type="button" id="note-new">${icon("plus")}새 노트</button>` : ""}
+    </header>
+    <main class="note-page">
+      <nav class="note-list" id="note-list" aria-label="노트 목록"></nav>
+      <article class="note-doc" id="note-doc"></article>
+    </main>`;
+  $("note-new")?.addEventListener("click", newNote);
+  noteTick = setInterval(() => { if (!mounted.startsWith("note:")) { clearInterval(noteTick); return; } const w = $("note-when"), n = app.notes.get(w?.dataset.id); if (w && n) w.textContent = sinceText(n.updatedAt); }, 20000);
+}
+function paintNote(id, err = "") {
+  const list = $("note-list"), docEl = $("note-doc");
+  if (!list || !docEl) return;
+  const notes = sortedNotes();
+  const cur = id && app.notes.has(id) ? id : notes[0]?.[0] || "";
+  list.innerHTML = notes.map(([nid, n]) => `<a href="#/note/${encodeURIComponent(nid)}" ${nid === cur ? 'aria-current="page"' : ""}><span class="mono">${esc(noteDate(n.date))}</span><b>${esc(n.title || "제목 없음")}</b></a>`).join("");
+  list.hidden = notes.length < 2 && !isAdmin();
+  if (err || !app.notesLoaded || !cur) {
+    docEl.dataset.id = "";
+    docEl.innerHTML = `<p class="empty mono">${esc(err || (!app.notesLoaded ? "불러오는 중" : isAdmin() ? "새 노트를 만들어 기록을 시작하세요" : "아직 올라온 노트가 없습니다"))}</p>`;
+    return;
+  }
+  const n = app.notes.get(cur);
+  if (isAdmin()) return paintNoteEditor(cur, n);
+  const nearEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 120;
+  const html = `<header class="note-meta"><span class="mono">${esc(noteDate(n.date))}</span><span class="when mono" id="note-when" data-id="${esc(cur)}">${esc(sinceText(n.updatedAt))}</span></header>
+    <h2>${esc(n.title || "제목 없음")}</h2>
+    <div class="note-body">${noteBodyHtml(n.body) || `<p class="muted">아직 내용이 없습니다</p>`}</div>`;
+  if (docEl.dataset.id === cur && docEl._html === html) return;
+  const grew = docEl.dataset.id === cur;
+  docEl.dataset.id = cur; docEl._html = html; docEl.innerHTML = html;
+  if (grew && nearEnd) window.scrollTo({ top: document.documentElement.scrollHeight });
+}
+function paintNoteEditor(cur, n) {
+  const docEl = $("note-doc");
+  const f = docEl.querySelector("form");
+  if (!f || docEl.dataset.id !== cur) {
+    docEl.dataset.id = cur; docEl._html = "";
+    docEl.innerHTML = `<form class="note-edit" id="note-form" autocomplete="off">
+      <div class="note-row">
+        <label class="field"><span class="mono">날짜</span><input type="date" name="date"></label>
+        <label class="field"><span class="mono">제목</span><input name="title" maxlength="100" placeholder="예: 5주차 바이브코딩"></label>
+      </div>
+      <label class="field"><span class="mono">내용</span><textarea name="body" placeholder="쓰는 대로 학생 화면에 바로 보입니다&#10;# 제목&#10;- 목록&#10;\`\`\` 사이에 넣은 글은 복사 버튼이 붙습니다"></textarea></label>
+      <div class="note-actions"><p class="note mono" id="note-save" role="status"></p><button class="btn ghost sm" type="button" id="note-del">삭제</button></div>
+      <section class="note-preview"><h3 class="mono">학생에게 보이는 모습</h3><div class="note-body" id="note-pv"></div></section>
+    </form>`;
+    const fm = $("note-form");
+    fm._v = 0;
+    fm.addEventListener("input", () => { fm.dataset.dirty = "1"; fm._v++; $("note-pv").innerHTML = noteBodyHtml(fm.elements.body.value); autoGrow(fm.elements.body); clearTimeout($("note-save")._t); $("note-save").textContent = "저장 중"; $("note-save").className = "note mono"; clearTimeout(fm._timer); fm._timer = setTimeout(() => saveNote(cur, fm), 600); });
+    fm.addEventListener("submit", e => e.preventDefault());
+    $("note-del").addEventListener("click", () => deleteNote(cur));
+  }
+  const fm = $("note-form");
+  if (fm.dataset.dirty) return;
+  fm.elements.date.value = n.date || "";
+  fm.elements.title.value = n.title || "";
+  fm.elements.body.value = n.body || "";
+  $("note-pv").innerHTML = noteBodyHtml(n.body);
+  autoGrow(fm.elements.body);
+  const w = sinceText(n.updatedAt);
+  if (w) { $("note-save").textContent = w.replace("수정", "저장됨"); $("note-save").className = "note mono ok"; }
+}
+function autoGrow(ta) { ta.style.height = "auto"; ta.style.height = Math.max(320, ta.scrollHeight + 2) + "px"; }
+async function saveNote(id, fm) {
+  const v = fm._v, { db, fsMod } = app.fb;
+  const data = { date: fm.elements.date.value || today(), title: fm.elements.title.value.trim().slice(0, 100), body: fm.elements.body.value.slice(0, 200000), updatedAt: fsMod.serverTimestamp() };
+  try {
+    await fsMod.setDoc(fsMod.doc(db, "notes", id), data);
+    if (fm.isConnected && fm._v === v) { delete fm.dataset.dirty; const d = new Date(); flash(fm.querySelector("#note-save"), true, `저장됨 ${pad(d.getHours())}:${pad(d.getMinutes())}`); }
+  } catch (e) {
+    if (fm.isConnected) flash(fm.querySelector("#note-save"), false, e.code === "permission-denied" ? "저장 권한이 없습니다. Firestore 규칙을 게시했는지 확인하세요" : "저장하지 못했습니다. 인터넷 연결을 확인하세요");
+  }
+}
+async function newNote() {
+  const { db, fsMod } = app.fb;
+  const ref = fsMod.doc(fsMod.collection(db, "notes"));
+  const d = new Date();
+  try {
+    await fsMod.setDoc(ref, { date: today(), title: `${d.getMonth() + 1}월 ${d.getDate()}일 수업`, body: "", updatedAt: fsMod.serverTimestamp() });
+    location.hash = `#/note/${encodeURIComponent(ref.id)}`;
+  } catch (e) {
+    alert(e.code === "permission-denied" ? "노트를 만들 권한이 없습니다. Firestore 규칙을 게시했는지 확인하세요." : "노트를 만들지 못했습니다.");
+  }
+}
+async function deleteNote(id) {
+  const n = app.notes.get(id);
+  if (!confirm(`"${n?.title || "제목 없음"}" 노트를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+  const { db, fsMod } = app.fb;
+  clearTimeout($("note-form")?._timer);
+  try { await fsMod.deleteDoc(fsMod.doc(db, "notes", id)); location.hash = "#/note"; }
+  catch { alert("삭제하지 못했습니다."); }
+}
 function mountProfile() {
   $("view").innerHTML = `
     <header class="class-head"><div><h1>내정보</h1><p class="mono muted">대시보드와 전체보기에 표시되는 정보입니다.</p></div></header>

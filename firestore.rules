@@ -26,7 +26,19 @@ service cloud.firestore {
       }
     }
 
-    // 교수자 계정 (학생 기록 삭제 가능)
+    // 수업노트 : 로그인한 사람은 모두 열람, 교수자만 작성
+    match /notes/{nid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && isAdmin()
+        && request.resource.data.keys().hasOnly(['title', 'body', 'date', 'updatedAt'])
+        && request.resource.data.title is string && request.resource.data.title.size() <= 100
+        && request.resource.data.body is string && request.resource.data.body.size() <= 200000
+        && request.resource.data.date is string && request.resource.data.date.size() <= 10
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if request.auth != null && isAdmin();
+    }
+
+    // 교수자 계정 (학생 기록 삭제, 수업노트 작성 가능)
     function isAdmin() {
       return request.auth.token.email_verified == true
         && request.auth.token.email in ['kimky@kmu.ac.kr', 'jjerry.kim@gmail.com'];
