@@ -8,7 +8,7 @@
 <meta name="description" content="이름을 입력하면 서명과 도장(인감, 직인, 법인인감, 결재) 이미지를 투명 PNG로 만들어 줍니다.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=East+Sea+Dokdo&family=Dokdo&family=Gaegu:wght@700&family=Hi+Melody&family=Yeon+Sung&family=Gamja+Flower&family=Single+Day&family=Kirang+Haerang&family=Great+Vibes&family=Alex+Brush&family=Allura&family=Sacramento&family=Dancing+Script:wght@600&family=Mr+Dafoe&family=Herr+Von+Muellerhoff&family=Monsieur+La+Doulaise&family=Homemade+Apple&family=La+Belle+Aurore&family=Song+Myung&family=Nanum+Myeongjo:wght@800&family=Hahmlet:wght@900&family=Gowun+Batang:wght@700&family=Black+Han+Sans&family=Do+Hyeon&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=East+Sea+Dokdo&family=Dokdo&family=Gaegu:wght@700&family=Hi+Melody&family=Yeon+Sung&family=Gamja+Flower&family=Single+Day&family=Kirang+Haerang&family=Great+Vibes&family=Alex+Brush&family=Allura&family=Sacramento&family=Dancing+Script:wght@600&family=Mr+Dafoe&family=Herr+Von+Muellerhoff&family=Monsieur+La+Doulaise&family=Homemade+Apple&family=La+Belle+Aurore&family=Song+Myung&family=Nanum+Myeongjo:wght@800&family=Hahmlet:wght@900&family=Gowun+Batang:wght@700&family=Black+Han+Sans&family=Do+Hyeon&family=Noto+Serif+KR:wght@900&family=Gasoek+One&family=Orbit&family=Gothic+A1:wght@900&family=Gugi&display=swap">
 <style>
   :root {
     --paper: #ffffff;
@@ -204,15 +204,28 @@
         <div class="field">
           <label class="label" for="stampFont">글씨체</label>
           <select id="stampFont">
-            <option value="Song Myung|400">송명 (전각 느낌)</option>
-            <option value="Nanum Myeongjo|800">나눔명조 굵게</option>
-            <option value="Hahmlet|900">함렛 굵게</option>
-            <option value="Gowun Batang|700">고운바탕</option>
-            <option value="Black Han Sans|400">검은고딕</option>
-            <option value="Do Hyeon|400">도현</option>
-            <option value="Yeon Sung|400">연성 (손글씨)</option>
-            <option value="Nanum Brush Script|400">나눔 붓글씨</option>
+            <optgroup label="무료 글꼴">
+              <option value="Song Myung|400">송명 (전각 느낌)</option>
+              <option value="Nanum Myeongjo|800">나눔명조 굵게</option>
+              <option value="Noto Serif KR|900">본명조 굵게</option>
+              <option value="Hahmlet|900">함렛 굵게</option>
+              <option value="Gowun Batang|700">고운바탕</option>
+              <option value="Gasoek One|400">가석 (새긴 느낌)</option>
+              <option value="Orbit|400">오르빗 (일정한 획)</option>
+              <option value="Black Han Sans|400">검은고딕</option>
+              <option value="Gothic A1|900">고딕 A1 굵게</option>
+              <option value="Do Hyeon|400">도현</option>
+              <option value="Gugi|400">구기</option>
+              <option value="Yeon Sung|400">연성 (손글씨)</option>
+              <option value="Nanum Brush Script|400">나눔 붓글씨</option>
+            </optgroup>
+            <optgroup label="내 글꼴" id="myFonts" hidden></optgroup>
           </select>
+          <div class="row" style="margin-top:8px">
+            <label class="btn" for="fontFile" style="height:36px">글꼴 파일 불러오기</label>
+            <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
+          </div>
+          <div class="hint">전서체(HJ한전서 등)처럼 유료 글꼴은 이 사이트에 넣을 수 없습니다. 가지고 있는 글꼴 파일(.ttf .otf)을 불러오면 바로 쓸 수 있고, PC에 설치되어 있으면 '내 글꼴'에 자동으로 나타납니다. 불러온 파일은 이 브라우저 안에서만 쓰이며 서버로 보내지지 않습니다.</div>
         </div>
         <div class="field">
           <span class="label">색상</span>
@@ -537,7 +550,8 @@
     sText.value = p.text;
     sSuffix.checked = p.suffix;
     sLayout.value = p.layout;
-    sFont.value = p.font;
+    // 내 글꼴을 고른 상태면 종류를 바꿔도 그대로 둔다
+    if (sFont.selectedOptions[0]?.parentElement.id !== 'myFonts') sFont.value = p.font;
     st.shape = p.shape;
     setSeg($('#stampShape'), p.shape);
     $('#presetHint').textContent = p.hint;
@@ -723,6 +737,78 @@
     if (job !== stampJob) return;
     renderStamp(canvas);
   }
+
+  /* 내 글꼴: PC에 설치된 도장 글꼴 찾기, 글꼴 파일 불러오기 */
+  const LOCAL_CANDIDATES = ['HJ한전서A', 'HJ한전서B', 'HJ한전서', 'HJHanJeonSeoA', 'HJHanJeonSeoB', 'HJ전서', 'HY전서', '전서체', '인장체', '해서체'];
+  const myFonts = $('#myFonts');
+  function addMyFont(family, label, select) {
+    const value = family + '|400';
+    if (![...myFonts.children].some(o => o.value === value)) {
+      const o = document.createElement('option');
+      o.value = value;
+      o.textContent = label;
+      myFonts.appendChild(o);
+    }
+    myFonts.hidden = false;
+    if (select) { sFont.value = value; drawStamp(); }
+  }
+  function isInstalled(name) {
+    const ctx = document.createElement('canvas').getContext('2d');
+    const sample = '홍길동인 大韓';
+    return ['monospace', 'serif'].some(base => {
+      ctx.font = `100px ${base}`;
+      const w0 = ctx.measureText(sample).width;
+      ctx.font = `100px "${name}", ${base}`;
+      return ctx.measureText(sample).width !== w0;
+    });
+  }
+  LOCAL_CANDIDATES.forEach(n => { if (isInstalled(n)) addMyFont(n, `${n} (PC 설치)`); });
+
+  // 불러온 글꼴은 이 브라우저(IndexedDB)에만 보관해 다음에 열어도 다시 쓸 수 있게 한다
+  function fontDB() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('sign-fonts', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('fonts');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function saveFont(name, buf) {
+    try {
+      const db = await fontDB();
+      db.transaction('fonts', 'readwrite').objectStore('fonts').put(buf, name);
+    } catch (e) {}
+  }
+  async function restoreFonts() {
+    try {
+      const db = await fontDB();
+      const store = db.transaction('fonts').objectStore('fonts');
+      const keys = await new Promise(r => { const q = store.getAllKeys(); q.onsuccess = () => r(q.result); });
+      const vals = await new Promise(r => { const q = store.getAll(); q.onsuccess = () => r(q.result); });
+      for (let i = 0; i < keys.length; i++) await registerFont(keys[i], vals[i], false);
+    } catch (e) {}
+  }
+  async function registerFont(name, buf, select) {
+    const family = '내글꼴 ' + name;
+    const face = new FontFace(family, buf);
+    await face.load();
+    document.fonts.add(face);
+    addMyFont(family, name, select);
+  }
+  $('#fontFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const name = file.name.replace(/\.(ttf|otf|woff2?)$/i, '');
+    try {
+      const buf = await file.arrayBuffer();
+      await registerFont(name, buf, true);
+      saveFont(name, buf);
+    } catch (err) {
+      alert('글꼴 파일을 읽지 못했습니다. .ttf .otf .woff 파일인지 확인해 주세요.');
+    }
+  });
+  restoreFonts();
 
   bindSeg($('#stampPreset'), applyPreset);
   bindSeg($('#stampShape'), v => { st.shape = v; syncShapeFields(); drawStamp(); });
