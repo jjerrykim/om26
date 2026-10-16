@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>서명 도장 만들기</title>
+<meta name="description" content="이름을 입력하면 서명과 도장(인감, 직인, 법인인감, 결재) 이미지를 투명 PNG로 만들어 줍니다.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=East+Sea+Dokdo&family=Dokdo&family=Gaegu:wght@700&family=Hi+Melody&family=Yeon+Sung&family=Gamja+Flower&family=Single+Day&family=Kirang+Haerang&family=Great+Vibes&family=Alex+Brush&family=Allura&family=Sacramento&family=Dancing+Script:wght@600&family=Mr+Dafoe&family=Herr+Von+Muellerhoff&family=Monsieur+La+Doulaise&family=Homemade+Apple&family=La+Belle+Aurore&family=Song+Myung&family=Nanum+Myeongjo:wght@800&family=Hahmlet:wght@900&family=Gowun+Batang:wght@700&family=Black+Han+Sans&family=Do+Hyeon&display=swap">
+<style>
+  :root {
+    --paper: #ffffff;
+    --bg: #f5f6f8;
+    --ink: #121212;
+    --ink-2: #4e5159;
+    --ink-3: #7a7d85;
+    --rule: #e3e5e9;
+    --line: #bfc3ca;
+    --signal: #144194;
+    --signal-dark: #0e2f6c;
+    --r: 8px;
+    --r-lg: 12px;
+    --ring: 0 0 0 3px color-mix(in srgb, #144194 18%, transparent);
+    --sans: "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 var(--sans); }
+  button, input, select { font: inherit; color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header { background: var(--paper); border-bottom: 1px solid var(--rule); }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 60px; }
+  h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .tabs { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 999px; }
+  .tabs button { border: 0; background: transparent; padding: 6px 16px; border-radius: 999px; cursor: pointer; font-weight: 500; color: var(--ink-2); }
+  .tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  main.wrap { padding-top: 24px; padding-bottom: 48px; }
+  .panel[hidden] { display: none; }
+  .card { background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 20px; }
+  .grid2 { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+  .label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-2); margin-bottom: 6px; }
+  .hint { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+  input[type="text"], select { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--paper); }
+  input[type="text"]:focus, select:focus { outline: none; border-color: var(--signal); box-shadow: var(--ring); }
+  input[type="range"] { width: 100%; accent-color: var(--signal); }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button { border: 1px solid var(--line); background: var(--paper); border-radius: var(--r); padding: 6px 12px; cursor: pointer; font-size: 14px; }
+  .seg button[aria-pressed="true"] { border-color: var(--signal); color: var(--signal); background: color-mix(in srgb, var(--signal) 7%, white); font-weight: 500; }
+  .swatches { display: flex; gap: 8px; }
+  .swatches button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+  .swatches button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--signal); }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .row output { min-width: 32px; text-align: right; font-size: 13px; color: var(--ink-2); }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--signal); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: var(--r); border: 1px solid var(--line); background: var(--paper); cursor: pointer; font-weight: 500; font-size: 14px; }
+  .btn.primary { background: var(--signal); border-color: var(--signal); color: #fff; }
+  .btn.primary:hover { background: var(--signal-dark); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .sig-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .sig-item { position: relative; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--r-lg); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .sig-item .view { height: 110px; display: flex; align-items: center; justify-content: center; border-radius: var(--r); background: repeating-conic-gradient(#f3f4f6 0 25%, #fff 0 50%) 0 0 / 16px 16px; overflow: hidden; }
+  .sig-item canvas { max-width: 100%; max-height: 100%; }
+  .sig-item .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .sig-item .name { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sig-item .btn { height: 32px; padding: 0 12px; font-size: 13px; }
+  .pad-wrap { position: relative; border: 1px dashed var(--line); border-radius: var(--r-lg); background: var(--paper); touch-action: none; }
+  .pad-wrap canvas { display: block; width: 100%; height: 280px; cursor: crosshair; }
+  .pad-wrap .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--ink-3); pointer-events: none; font-size: 14px; }
+  .pad-wrap .baseline { position: absolute; left: 24px; right: 24px; bottom: 70px; border-top: 1px solid var(--rule); pointer-events: none; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .stamp-view { display: flex; align-items: center; justify-content: center; padding: 24px; border-radius: var(--r); background: repeating-conic-gradient(#f3f4f6 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
+  .stamp-view canvas { width: min(320px, 100%); height: auto; aspect-ratio: 1; }
+  .stamp-actions { display: flex; justify-content: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .sub-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .sub-head h2 { margin: 0; font-size: 15px; font-weight: 700; }
+  .note { margin-top: 16px; font-size: 12px; color: var(--ink-3); line-height: 1.7; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>서명 도장 만들기</h1>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="sig">서명</button>
+      <button role="tab" aria-selected="false" data-tab="stamp">도장</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 서명 -->
+  <section class="panel" id="panel-sig">
+    <div class="grid2">
+      <div class="card">
+        <div class="field">
+          <span class="label">만드는 방법</span>
+          <div class="seg" id="sigMode">
+            <button aria-pressed="true" data-v="text">글자로 만들기</button>
+            <button aria-pressed="false" data-v="draw">직접 그리기</button>
+          </div>
+        </div>
+        <div class="field" data-for="text">
+          <label class="label" for="sigText">이름</label>
+          <input type="text" id="sigText" value="홍길동" maxlength="20" autocomplete="off">
+          <div class="hint">한글은 한글 필기체, 영문은 영문 필기체까지 함께 보여 줍니다.</div>
+        </div>
+        <div class="field">
+          <span class="label">색상</span>
+          <div class="swatches" id="sigColor">
+            <button aria-pressed="true" data-v="#111111" style="background:#111111" aria-label="검정"></button>
+            <button aria-pressed="false" data-v="#1a3a8f" style="background:#1a3a8f" aria-label="남색"></button>
+            <button aria-pressed="false" data-v="#2f6fd6" style="background:#2f6fd6" aria-label="파랑"></button>
+            <button aria-pressed="false" data-v="#c8102e" style="background:#c8102e" aria-label="빨강"></button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">굵기</span>
+          <div class="row"><input type="range" id="sigWeight" min="0" max="6" step="1" value="1"><output id="sigWeightOut">1</output></div>
+        </div>
+        <div class="field" data-for="text">
+          <span class="label">기울기</span>
+          <div class="row"><input type="range" id="sigSlant" min="-20" max="20" step="1" value="0"><output id="sigSlantOut">0°</output></div>
+        </div>
+        <div class="note">PNG는 배경이 투명하게 저장됩니다. 문서, 이메일 서명, 전자계약에 바로 붙여 쓸 수 있습니다.</div>
+      </div>
+
+      <div>
+        <div data-for="text">
+          <div class="sub-head"><h2>글씨체 고르기</h2><span class="hint" id="sigCount"></span></div>
+          <div class="sig-list" id="sigList"></div>
+        </div>
+        <div data-for="draw" hidden>
+          <div class="card">
+            <div class="pad-wrap" id="padWrap">
+              <canvas id="pad"></canvas>
+              <div class="baseline"></div>
+              <div class="ph" id="padPh">여기에 마우스나 손가락으로 서명하세요</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn" id="padUndo">되돌리기</button>
+              <button class="btn" id="padClear">모두 지우기</button>
+              <span style="flex:1"></span>
+              <button class="btn primary" id="padSave">PNG 저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 도장 -->
+  <section class="panel" id="panel-stamp" hidden>
+    <div class="grid2">
+      <div class="card">
+        <div class="field">
+          <span class="label">도장 종류</span>
+          <div class="seg" id="stampPreset">
+            <button aria-pressed="true" data-v="ingam">개인 인감</button>
+            <button aria-pressed="false" data-v="mak">막도장</button>
+            <button aria-pressed="false" data-v="jikin">직인</button>
+            <button aria-pressed="false" data-v="corp">법인 인감</button>
+            <button aria-pressed="false" data-v="sign">결재</button>
+          </div>
+          <div class="hint" id="presetHint"></div>
+        </div>
+        <div class="field">
+          <label class="label" for="stampText" id="stampTextLabel">이름</label>
+          <input type="text" id="stampText" value="홍길동" maxlength="16" autocomplete="off">
+        </div>
+        <div class="field" id="innerField" hidden>
+          <label class="label" for="stampInner">가운데 글자</label>
+          <input type="text" id="stampInner" value="대표이사인" maxlength="9" autocomplete="off">
+        </div>
+        <div class="field" id="suffixField">
+          <label class="check"><input type="checkbox" id="stampSuffix" checked> 끝에 '인' 붙이기</label>
+        </div>
+        <div class="field">
+          <span class="label">모양</span>
+          <div class="seg" id="stampShape">
+            <button aria-pressed="true" data-v="circle">원형</button>
+            <button aria-pressed="false" data-v="square">사각</button>
+            <button aria-pressed="false" data-v="rounded">둥근 사각</button>
+            <button aria-pressed="false" data-v="corp">이중 원형</button>
+          </div>
+        </div>
+        <div class="field" id="layoutField">
+          <label class="label" for="stampLayout">글자 배치</label>
+          <select id="stampLayout">
+            <option value="auto">자동 (세로쓰기, 오른쪽부터)</option>
+            <option value="1">세로 1줄</option>
+            <option value="2">세로 2줄</option>
+            <option value="3">세로 3줄</option>
+            <option value="4">세로 4줄</option>
+            <option value="h">가로 1줄</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label" for="stampFont">글씨체</label>
+          <select id="stampFont">
+            <option value="Song Myung|400">송명 (전각 느낌)</option>
+            <option value="Nanum Myeongjo|800">나눔명조 굵게</option>
+            <option value="Hahmlet|900">함렛 굵게</option>
+            <option value="Gowun Batang|700">고운바탕</option>
+            <option value="Black Han Sans|400">검은고딕</option>
+            <option value="Do Hyeon|400">도현</option>
+            <option value="Yeon Sung|400">연성 (손글씨)</option>
+            <option value="Nanum Brush Script|400">나눔 붓글씨</option>
+          </select>
+        </div>
+        <div class="field">
+          <span class="label">색상</span>
+          <div class="swatches" id="stampColor">
+            <button aria-pressed="true" data-v="#d3122a" style="background:#d3122a" aria-label="인주 빨강"></button>
+            <button aria-pressed="false" data-v="#a3101f" style="background:#a3101f" aria-label="진한 빨강"></button>
+            <button aria-pressed="false" data-v="#1f3f9a" style="background:#1f3f9a" aria-label="파랑"></button>
+            <button aria-pressed="false" data-v="#111111" style="background:#111111" aria-label="검정"></button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">테두리 두께</span>
+          <div class="row"><input type="range" id="stampBorder" min="1" max="10" step="1" value="5"><output id="stampBorderOut">5</output></div>
+        </div>
+        <div class="field">
+          <span class="label">글자 굵기</span>
+          <div class="row"><input type="range" id="stampWeight" min="0" max="8" step="1" value="3"><output id="stampWeightOut">3</output></div>
+        </div>
+        <div class="field">
+          <span class="label">찍힌 질감</span>
+          <div class="row"><input type="range" id="stampGrain" min="0" max="10" step="1" value="3"><output id="stampGrainOut">3</output></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="stamp-view"><canvas id="stampCanvas" width="800" height="800"></canvas></div>
+        <div class="stamp-actions">
+          <button class="btn" id="stampReseed">질감 다시 찍기</button>
+          <button class="btn primary" id="stampSave">PNG 저장</button>
+        </div>
+        <div class="note">
+          배경이 투명한 800 × 800 PNG로 저장됩니다. 한글 도장은 오른쪽 줄부터 위에서 아래로 읽도록 배치합니다.<br>
+          이미지 도장은 전자문서용입니다. 주민센터에 등록하는 인감이나 법인 등기소에 신고하는 인감은 실물 도장으로 해야 하며, 다른 사람이나 회사 명의의 도장을 허락 없이 만들어 쓰면 위조에 해당할 수 있습니다.
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  /* 공통 */
+  function bindSeg(el, onChange) {
+    el.addEventListener('click', e => {
+      const b = e.target.closest('button[data-v]');
+      if (!b) return;
+      $$('button', el).forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+      onChange(b.dataset.v);
+    });
+  }
+  function segValue(el) { return $('button[aria-pressed="true"]', el).dataset.v; }
+  function setSeg(el, v) { $$('button', el).forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v ? 'true' : 'false')); }
+  function bindRange(input, out, suffix, onChange) {
+    input.addEventListener('input', () => { out.textContent = input.value + (suffix || ''); onChange(); });
+  }
+  function download(canvas, name) {
+    canvas.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name.replace(/\s+/g, '-').toLowerCase() + '.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, 'image/png');
+  }
+  const loaded = new Set();
+  function ensureFont(family, weight, text) {
+    const key = family + weight + text;
+    if (loaded.has(key)) return Promise.resolve();
+    return document.fonts.load(`${weight} 40px "${family}"`, text || 'A가').then(() => loaded.add(key)).catch(() => {});
+  }
+  const hasHangul = s => /[ㄱ-힝]/.test(s);
+
+  /* 탭 */
+  $$('.tabs button').forEach(b => b.addEventListener('click', () => {
+    $$('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b ? 'true' : 'false'));
+    $('#panel-sig').hidden = b.dataset.tab !== 'sig';
+    $('#panel-stamp').hidden = b.dataset.tab !== 'stamp';
+    if (b.dataset.tab === 'stamp') drawStamp();
+    else resizePad();
+  }));
+
+  /* 서명: 글자 */
+  const KO_FONTS = [
+    ['Nanum Brush Script', 400, '나눔 붓글씨'],
+    ['Nanum Pen Script', 400, '나눔 펜글씨'],
+    ['East Sea Dokdo', 400, '동해 독도'],
+    ['Dokdo', 400, '독도'],
+    ['Yeon Sung', 400, '연성'],
+    ['Hi Melody', 400, '하이멜로디'],
+    ['Gaegu', 700, '개구'],
+    ['Gamja Flower', 400, '감자꽃'],
+    ['Single Day', 400, '싱글데이'],
+    ['Kirang Haerang', 400, '기랑해랑'],
+  ];
+  const EN_FONTS = [
+    ['Great Vibes', 400, 'Great Vibes'],
+    ['Alex Brush', 400, 'Alex Brush'],
+    ['Allura', 400, 'Allura'],
+    ['Sacramento', 400, 'Sacramento'],
+    ['Mr Dafoe', 400, 'Mr Dafoe'],
+    ['Herr Von Muellerhoff', 400, 'Herr Von Muellerhoff'],
+    ['Monsieur La Doulaise', 400, 'Monsieur La Doulaise'],
+    ['Dancing Script', 600, 'Dancing Script'],
+    ['Homemade Apple', 400, 'Homemade Apple'],
+    ['La Belle Aurore', 400, 'La Belle Aurore'],
+  ];
+
+  const sig = { mode: 'text', color: '#111111' };
+  const sigText = $('#sigText'), sigWeight = $('#sigWeight'), sigSlant = $('#sigSlant');
+
+  function renderSigText(text, family, weight, px) {
+    const stroke = +sigWeight.value * px / 120;
+    const t = Math.tan(+sigSlant.value * Math.PI / 180);
+    const m = document.createElement('canvas').getContext('2d');
+    m.font = `${weight} ${px}px "${family}"`;
+    const box = m.measureText(text);
+    const L = box.actualBoundingBoxLeft, R = box.actualBoundingBoxRight;
+    const A = box.actualBoundingBoxAscent, D = box.actualBoundingBoxDescent;
+    const pad = Math.ceil(px * 0.12 + stroke);
+    const h = Math.ceil(A + D + pad * 2);
+    const skew = Math.abs(t) * h;
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil(L + R + pad * 2 + skew * 2));
+    c.height = Math.max(1, h);
+    const ctx = c.getContext('2d');
+    ctx.font = m.font;
+    ctx.fillStyle = ctx.strokeStyle = sig.color;
+    ctx.lineJoin = ctx.lineCap = 'round';
+    ctx.lineWidth = stroke;
+    const baseY = pad + A;
+    // 기울기: 기준선 위쪽을 오른쪽(+) 또는 왼쪽(-)으로 민다
+    ctx.setTransform(1, 0, -t, 1, t * baseY + skew, 0);
+    ctx.fillText(text, pad + L, baseY);
+    if (stroke > 0) ctx.strokeText(text, pad + L, baseY);
+    return trim(c, Math.ceil(px * 0.06));
+  }
+
+  // 투명 여백을 잘라 내고 일정한 여백만 남긴다
+  function trim(c, margin) {
+    const ctx = c.getContext('2d');
+    const { width: w, height: h } = c;
+    const d = ctx.getImageData(0, 0, w, h).data;
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (d[(y * w + x) * 4 + 3] > 8) {
+          if (x < x0) x0 = x; if (x > x1) x1 = x;
+          if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+      }
+    }
+    if (x1 < 0) return c;
+    const out = document.createElement('canvas');
+    out.width = x1 - x0 + 1 + margin * 2;
+    out.height = y1 - y0 + 1 + margin * 2;
+    out.getContext('2d').drawImage(c, x0, y0, x1 - x0 + 1, y1 - y0 + 1, margin, margin, x1 - x0 + 1, y1 - y0 + 1);
+    return out;
+  }
+
+  function sigFonts(text) {
+    if (hasHangul(text)) return KO_FONTS;
+    return [...EN_FONTS, ...KO_FONTS];
+  }
+
+  let sigJob = 0;
+  async function drawSigList() {
+    const job = ++sigJob;
+    const text = sigText.value.trim() || '홍길동';
+    const fonts = sigFonts(text);
+    await Promise.all(fonts.map(([f, w]) => ensureFont(f, w, text)));
+    if (job !== sigJob) return;
+    const list = $('#sigList');
+    list.innerHTML = '';
+    fonts.forEach(([family, weight, label]) => {
+      const item = document.createElement('div');
+      item.className = 'sig-item';
+      const view = document.createElement('div');
+      view.className = 'view';
+      const prev = renderSigText(text, family, weight, 72);
+      view.appendChild(prev);
+      const foot = document.createElement('div');
+      foot.className = 'foot';
+      foot.innerHTML = `<span class="name">${label}</span>`;
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'PNG 저장';
+      btn.addEventListener('click', () => download(renderSigText(text, family, weight, 240), `signature_${family}`));
+      foot.appendChild(btn);
+      item.append(view, foot);
+      list.appendChild(item);
+    });
+    $('#sigCount').textContent = `${fonts.length}개`;
+  }
+
+  let sigTimer;
+  const queueSig = () => { clearTimeout(sigTimer); sigTimer = setTimeout(() => { if (sig.mode === 'text') drawSigList(); else redrawPad(); }, 120); };
+  sigText.addEventListener('input', queueSig);
+  bindRange(sigWeight, $('#sigWeightOut'), '', queueSig);
+  bindRange(sigSlant, $('#sigSlantOut'), '°', queueSig);
+  bindSeg($('#sigColor'), v => { sig.color = v; queueSig(); });
+  bindSeg($('#sigMode'), v => {
+    sig.mode = v;
+    $$('#panel-sig [data-for]').forEach(el => { el.hidden = el.dataset.for !== v; });
+    if (v === 'draw') resizePad(); else drawSigList();
+  });
+
+  /* 서명: 직접 그리기 */
+  const pad = $('#pad'), padCtx = pad.getContext('2d');
+  const strokes = [];
+  let cur = null;
+  const baseWidth = () => 1.6 + +sigWeight.value * 0.9;
+
+  function resizePad() {
+    const dpr = window.devicePixelRatio || 1;
+    const r = pad.getBoundingClientRect();
+    if (!r.width) return;
+    pad.width = Math.round(r.width * dpr);
+    pad.height = Math.round(r.height * dpr);
+    padCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    redrawPad();
+  }
+  function drawStroke(ctx, s, ox = 0, oy = 0, k = 1) {
+    const p = s.pts, bw = baseWidth();
+    ctx.fillStyle = ctx.strokeStyle = sig.color;
+    ctx.lineCap = ctx.lineJoin = 'round';
+    if (p.length === 1) {
+      ctx.beginPath();
+      ctx.arc((p[0].x - ox) * k, (p[0].y - oy) * k, bw * p[0].w * k / 2, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    for (let i = 1; i < p.length; i++) {
+      const a = p[i - 1], b = p[i];
+      const m0 = i === 1 ? a : { x: (p[i - 2].x + a.x) / 2, y: (p[i - 2].y + a.y) / 2 };
+      const m1 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      ctx.beginPath();
+      ctx.moveTo((m0.x - ox) * k, (m0.y - oy) * k);
+      ctx.quadraticCurveTo((a.x - ox) * k, (a.y - oy) * k, (m1.x - ox) * k, (m1.y - oy) * k);
+      ctx.lineWidth = bw * (a.w + b.w) / 2 * k;
+      ctx.stroke();
+    }
+    const last = p[p.length - 1], prev = { x: (p[p.length - 2].x + last.x) / 2, y: (p[p.length - 2].y + last.y) / 2 };
+    ctx.beginPath();
+    ctx.moveTo((prev.x - ox) * k, (prev.y - oy) * k);
+    ctx.lineTo((last.x - ox) * k, (last.y - oy) * k);
+    ctx.lineWidth = bw * last.w * k;
+    ctx.stroke();
+  }
+  function redrawPad() {
+    const r = pad.getBoundingClientRect();
+    padCtx.clearRect(0, 0, r.width, r.height);
+    strokes.forEach(s => drawStroke(padCtx, s));
+    $('#padPh').hidden = strokes.length > 0;
+    $('#padUndo').disabled = $('#padClear').disabled = $('#padSave').disabled = strokes.length === 0;
+  }
+  function pt(e) {
+    const r = pad.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top, t: performance.now() };
+  }
+  pad.addEventListener('pointerdown', e => {
+    pad.setPointerCapture(e.pointerId);
+    const p = pt(e);
+    p.w = e.pointerType === 'pen' && e.pressure ? 0.5 + e.pressure : 1.1;
+    cur = { pts: [p] };
+    strokes.push(cur);
+    redrawPad();
+  });
+  pad.addEventListener('pointermove', e => {
+    if (!cur) return;
+    const p = pt(e), q = cur.pts[cur.pts.length - 1];
+    const dist = Math.hypot(p.x - q.x, p.y - q.y);
+    if (dist < 1.5) return;
+    if (e.pointerType === 'pen' && e.pressure) p.w = 0.5 + e.pressure;
+    else {
+      const v = dist / Math.max(1, p.t - q.t);
+      const target = Math.max(0.45, Math.min(1.3, 1.35 - v * 0.35));
+      p.w = q.w * 0.7 + target * 0.3;
+    }
+    cur.pts.push(p);
+    redrawPad();
+  });
+  const end = () => { cur = null; };
+  pad.addEventListener('pointerup', end);
+  pad.addEventListener('pointercancel', end);
+  $('#padUndo').addEventListener('click', () => { strokes.pop(); redrawPad(); });
+  $('#padClear').addEventListener('click', () => { strokes.length = 0; redrawPad(); });
+  $('#padSave').addEventListener('click', () => {
+    if (!strokes.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    strokes.forEach(s => s.pts.forEach(p => { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }));
+    const k = 3, m = baseWidth() * 1.5 + 8;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil((x1 - x0 + m * 2) * k);
+    c.height = Math.ceil((y1 - y0 + m * 2) * k);
+    const ctx = c.getContext('2d');
+    strokes.forEach(s => drawStroke(ctx, s, x0 - m, y0 - m, k));
+    download(c, 'signature_drawn');
+  });
+  window.addEventListener('resize', () => { if (sig.mode === 'draw') resizePad(); });
+
+  /* 도장 */
+  const PRESETS = {
+    ingam: { label: '이름', text: '홍길동', shape: 'circle', suffix: true, layout: 'auto', font: 'Song Myung|400', hint: '개인 인감 형태. 이름 끝에 인(印)을 붙여 세로로 배치합니다.' },
+    mak:   { label: '이름', text: '홍길동', shape: 'circle', suffix: false, layout: 'auto', font: 'Nanum Myeongjo|800', hint: '이름만 새기는 일상용 도장입니다.' },
+    jikin: { label: '회사 또는 기관 이름', text: '가나다주식회사', shape: 'square', suffix: true, layout: 'auto', font: 'Song Myung|400', hint: '회사, 기관, 대표자 직인 형태. 사각형 안에 세로쓰기로 채웁니다.' },
+    corp:  { label: '둘레 글자 (회사 이름)', text: '주식회사가나다', shape: 'corp', suffix: false, layout: 'auto', font: 'Song Myung|400', hint: '법인 인감 형태. 바깥 둘레에 회사 이름, 가운데에 직함을 새깁니다.' },
+    sign:  { label: '이름', text: '홍길동', shape: 'circle', suffix: false, layout: 'h', font: 'Black Han Sans|400', hint: '결재란에 찍는 작은 가로형 도장입니다.' },
+  };
+  const st = { color: '#d3122a', shape: 'circle', seed: 1 };
+  const sText = $('#stampText'), sInner = $('#stampInner'), sSuffix = $('#stampSuffix'), sLayout = $('#stampLayout'), sFont = $('#stampFont');
+  const sBorder = $('#stampBorder'), sWeight = $('#stampWeight'), sGrain = $('#stampGrain');
+  const canvas = $('#stampCanvas');
+
+  function applyPreset(key) {
+    const p = PRESETS[key];
+    $('#stampTextLabel').textContent = p.label;
+    sText.value = p.text;
+    sSuffix.checked = p.suffix;
+    sLayout.value = p.layout;
+    sFont.value = p.font;
+    st.shape = p.shape;
+    setSeg($('#stampShape'), p.shape);
+    $('#presetHint').textContent = p.hint;
+    syncShapeFields();
+    drawStamp();
+  }
+  function syncShapeFields() {
+    const corp = st.shape === 'corp';
+    $('#innerField').hidden = !corp;
+    $('#suffixField').hidden = corp;
+    $('#layoutField').hidden = corp;
+  }
+
+  function rand(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // 글자 하나를 칸에 맞게 늘려서 채운다 (도장 글자처럼 칸을 꽉 채우도록)
+  function glyph(ctx, ch, cx, cy, w, h, family, weight, extra, rot = 0) {
+    if (!ch.trim()) return;
+    ctx.save();
+    ctx.font = `${weight} 200px "${family}"`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    const m = ctx.measureText(ch);
+    const L = m.actualBoundingBoxLeft, R = m.actualBoundingBoxRight, A = m.actualBoundingBoxAscent, D = m.actualBoundingBoxDescent;
+    const gw = Math.max(1, L + R), gh = Math.max(1, A + D);
+    let sx = w / gw, sy = h / gh;
+    const lim = 1.9;
+    if (sx / sy > lim) sx = sy * lim;
+    if (sy / sx > lim) sy = sx * lim;
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+    ctx.scale(sx, sy);
+    const x = (L - R) / 2, y = (A - D) / 2;
+    ctx.fillText(ch, x, y);
+    if (extra > 0) {
+      ctx.lineWidth = extra / Math.sqrt(sx * sy);
+      ctx.lineJoin = 'round';
+      ctx.strokeText(ch, x, y);
+    }
+    ctx.restore();
+  }
+
+  // 세로쓰기: 오른쪽 줄부터 위에서 아래로. 줄마다 글자 수에 맞게 칸 높이를 나눈다
+  function gridLayout(chars, layout) {
+    const n = chars.length;
+    if (layout === 'h') return { cols: [chars], horizontal: true };
+    let cols;
+    if (layout === 'auto') {
+      const rows = Math.ceil(Math.sqrt(n));
+      cols = Math.ceil(n / rows);
+    } else cols = Math.min(n, +layout);
+    const rows = Math.ceil(n / cols);
+    const out = [];
+    for (let c = 0; c < cols; c++) out.push(chars.slice(c * rows, c * rows + rows));
+    return { cols: out.filter(c => c.length), horizontal: false };
+  }
+
+  function drawGrid(ctx, chars, layout, bx, by, bw, bh, family, weight, extra, gap) {
+    const g = gridLayout(chars, layout);
+    if (g.horizontal) {
+      const n = chars.length, cw = bw / n;
+      chars.forEach((ch, i) => glyph(ctx, ch, bx + cw * (i + 0.5), by + bh / 2, cw * (1 - gap), bh * (1 - gap), family, weight, extra));
+      return;
+    }
+    const nc = g.cols.length, cw = bw / nc;
+    g.cols.forEach((col, ci) => {
+      const x = bx + bw - cw * (ci + 0.5);
+      const chh = bh / col.length;
+      col.forEach((ch, ri) => glyph(ctx, ch, x, by + chh * (ri + 0.5), cw * (1 - gap), chh * (1 - gap * Math.min(1, col.length / 2)), family, weight, extra));
+    });
+  }
+
+  // 원 안에 들어가는 글자 상자 크기
+  function boxInCircle(diam, chars, layout) {
+    const g = gridLayout(chars, layout);
+    const nc = g.cols.length;
+    const nr = g.horizontal ? 1 : Math.max(...g.cols.map(c => c.length));
+    let a = g.horizontal ? chars.length / 1.6 : nc / nr;
+    a = Math.max(0.55, Math.min(1.9, a));
+    const h = diam / Math.sqrt(1 + a * a);
+    return { w: h * a, h };
+  }
+
+  function getChars() {
+    let t = [...sText.value.replace(/\s+/g, '')];
+    if (st.shape !== 'corp' && sSuffix.checked && t.length && t[t.length - 1] !== '인' && t[t.length - 1] !== '印') t.push('인');
+    return t.length ? t : ['인'];
+  }
+
+  function renderStamp(c) {
+    const S = c.width, ctx = c.getContext('2d');
+    const [family, weight] = sFont.value.split('|');
+    const color = st.color;
+    const bw = S * (0.012 + +sBorder.value * 0.006);
+    const extra = +sWeight.value * S / 800 * 1.6;
+    const pad = S * 0.04;
+    const chars = getChars();
+    ctx.clearRect(0, 0, S, S);
+    ctx.fillStyle = ctx.strokeStyle = color;
+    ctx.lineWidth = bw;
+    const cx = S / 2, cy = S / 2;
+
+    if (st.shape === 'circle') {
+      const R = S / 2 - pad - bw / 2;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+      const inner = (R - bw / 2 - S * 0.035) * 2;
+      const b = boxInCircle(inner, chars, sLayout.value);
+      drawGrid(ctx, chars, sLayout.value, cx - b.w / 2, cy - b.h / 2, b.w, b.h, family, weight, extra, 0.08);
+    } else if (st.shape === 'square' || st.shape === 'rounded') {
+      const x = pad + bw / 2, w = S - pad * 2 - bw;
+      ctx.beginPath();
+      if (st.shape === 'rounded') ctx.roundRect(x, x, w, w, S * 0.09); else ctx.rect(x, x, w, w);
+      ctx.stroke();
+      const ip = x + bw / 2 + S * 0.03, iw = S - ip * 2;
+      drawGrid(ctx, chars, sLayout.value, ip, ip, iw, iw, family, weight, extra, 0.07);
+    } else {
+      // 이중 원형: 둘레 글자 + 가운데 글자
+      const R = S / 2 - pad - bw / 2;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+      const R2 = R * 0.6;
+      ctx.lineWidth = Math.max(S * 0.008, bw * 0.55);
+      ctx.beginPath(); ctx.arc(cx, cy, R2, 0, Math.PI * 2); ctx.stroke();
+      const outerIn = R - bw / 2, innerOut = R2 + ctx.lineWidth / 2;
+      const band = outerIn - innerOut, rm = innerOut + band / 2;
+      const n = chars.length;
+      const step = (Math.PI * 2) / (n + 1);
+      const ch = band * 0.78, cw = Math.min(ch * 1.1, step * rm * 0.86);
+      chars.forEach((c0, i) => {
+        const ang = Math.PI / 2 + step * (i + 1);
+        glyph(ctx, c0, cx + Math.cos(ang) * rm, cy + Math.sin(ang) * rm, cw, ch, family, weight, extra * 0.8, ang + Math.PI / 2);
+      });
+      // 시작과 끝 사이 구분점
+      ctx.beginPath(); ctx.arc(cx, cy + rm, band * 0.09, 0, Math.PI * 2); ctx.fill();
+      let ic = [...sInner.value.replace(/\s+/g, '')];
+      if (!ic.length) ic = ['인'];
+      const iDiam = (R2 - ctx.lineWidth / 2 - S * 0.025) * 2;
+      const b = boxInCircle(iDiam, ic, 'auto');
+      drawGrid(ctx, ic, 'auto', cx - b.w / 2, cy - b.h / 2, b.w, b.h, family, weight, extra * 0.8, 0.08);
+    }
+
+    // 찍힌 질감: 잉크가 덜 묻은 자국을 무작위로 지운다
+    const grain = +sGrain.value;
+    if (grain > 0) {
+      const r = rand(st.seed);
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      const k = S / 800;
+      const dots = grain * 900;
+      for (let i = 0; i < dots; i++) {
+        ctx.globalAlpha = 0.25 + r() * 0.75;
+        ctx.beginPath();
+        ctx.arc(r() * S, r() * S, (0.4 + r() * r() * 2.4) * k, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const blots = grain * 3;
+      for (let i = 0; i < blots; i++) {
+        const x = r() * S, y = r() * S, rr = (12 + r() * 40) * k;
+        const gr = ctx.createRadialGradient(x, y, 0, x, y, rr);
+        gr.addColorStop(0, `rgba(0,0,0,${0.15 + grain * 0.03})`);
+        gr.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = gr;
+        ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+      }
+      ctx.restore();
+    }
+  }
+
+  let stampJob = 0;
+  async function drawStamp() {
+    const job = ++stampJob;
+    const [family, weight] = sFont.value.split('|');
+    await ensureFont(family, weight, getChars().join('') + sInner.value);
+    if (job !== stampJob) return;
+    renderStamp(canvas);
+  }
+
+  bindSeg($('#stampPreset'), applyPreset);
+  bindSeg($('#stampShape'), v => { st.shape = v; syncShapeFields(); drawStamp(); });
+  bindSeg($('#stampColor'), v => { st.color = v; drawStamp(); });
+  [sText, sInner].forEach(el => el.addEventListener('input', drawStamp));
+  [sSuffix, sLayout, sFont].forEach(el => el.addEventListener('change', drawStamp));
+  bindRange(sBorder, $('#stampBorderOut'), '', drawStamp);
+  bindRange(sWeight, $('#stampWeightOut'), '', drawStamp);
+  bindRange(sGrain, $('#stampGrainOut'), '', drawStamp);
+  $('#stampReseed').addEventListener('click', () => { st.seed = (Math.random() * 1e9) | 0; drawStamp(); });
+  $('#stampSave').addEventListener('click', () => download(canvas, `stamp_${segValue($('#stampPreset'))}`));
+
+  /* 시작 */
+  $('#presetHint').textContent = PRESETS.ingam.hint;
+  document.fonts.ready.then(() => { drawSigList(); });
+  drawSigList();
+})();
+</script>
+</body>
+</html>
