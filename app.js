@@ -650,6 +650,9 @@ function renderResult(data, st, t, r) {
         ${treeHtml(PROMO, { mode: "view", picks })}
         ${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}`;
     }
+    case "report":
+      return `${r.ad ? adReportHtml(r.ad) : `<p class="muted">보고서 파일 없음</p>`}
+        ${r.insight || r.next ? `<div class="grid2">${r.insight ? `<p class="dnote"><span class="mono muted">한 줄 해석</span>${cell(r.insight)}</p>` : ""}${r.next ? `<p class="dnote"><span class="mono muted">다음 주에 바꿀 것</span>${cell(r.next)}</p>` : ""}</div>` : ""}`;
     case "direct":
     case "indirect": {
       const root = TREES[t.id];
@@ -866,6 +869,7 @@ function mountTask(st, index) {
         <h2 class="sec-h">따라하기</h2>
         <ol class="follow">${t.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>
       </section>
+      ${t.guide ? guideHtml(t.guide) : ""}
       ${promptsOf(t).length ? `<section class="sec">
         <h2 class="sec-h">프롬프트<span id="prompt-hint"></span></h2>
         ${promptsOf(t).map((p, i) => `${p.title ? `<h3 class="ptitle">${esc(p.title)}</h3>` : ""}<div class="prompt">
@@ -899,6 +903,7 @@ function mountTask(st, index) {
   $("files")?.addEventListener("click", e => { const b = e.target.closest("[data-del]"); if (b) onDeleteFile(b.dataset.del); });
   const f = $("rform");
   if (f) {
+    f.addEventListener("change", e => { const k = e.target.dataset?.adfile; if (k) onAdFile(e.target, f, k); });
     f.addEventListener("input", () => { f.dataset.dirty = "1"; });
     f.addEventListener("submit", e => onResultSubmit(e, st, t));
   }
@@ -975,6 +980,105 @@ async function copyPrompt(btn) {
   setTimeout(() => { btn.innerHTML = old; }, 1800);
 }
 
+/* 검색광고 보고서 (네이버 다차원 보고서 CSV) */
+function guideHtml(g) {
+  return `<section class="sec">
+    <h2 class="sec-h">${esc(g.title)}</h2>
+    <ol class="gsteps">${g.steps.map(([h, b], i) => `<li><span class="gnum mono">${i + 1}</span><div><b>${esc(h)}</b><p>${esc(b)}</p></div></li>`).join("")}</ol>
+    ${g.cols ? `<div class="tbl-wrap"><table class="tbl gcols"><thead><tr><th>넣을 항목</th><th>쓰이는 곳</th><th></th></tr></thead><tbody>${g.cols.map(([a, b, c]) => `<tr><th>${esc(a)}</th><td>${esc(b)}</td><td><span class="pill${c === "필수" ? " paid" : ""}">${esc(c)}</span></td></tr>`).join("")}</tbody></table></div>` : ""}
+    ${g.note ? `<p class="dnote gnote">${esc(g.note)}</p>` : ""}
+  </section>`;
+}
+function parseCsv(text) {
+  const rows = [];
+  let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+function parseAdReport(text, fileName) {
+  const rows = parseCsv(text.replace(/^\uFEFF/, ""));
+  const hi = rows.findIndex(r => r.includes("노출수") && r.includes("클릭수"));
+  if (hi < 0) return { error: "노출수 · 클릭수 열을 찾지 못했습니다. 네이버 검색광고 보고서 CSV인지 확인하세요" };
+  const h = rows[hi].map(x => x.trim());
+  const col = (...names) => { for (const n of names) { const i = h.indexOf(n); if (i >= 0) return i; } return -1; };
+  const C = { day: col("일별"), camp: col("캠페인"), ctype: col("캠페인유형"), kw: col("키워드"), dev: col("PC/모바일 매체"), imp: col("노출수"), clk: col("클릭수"), cost: col("총비용"), conv: col("총 전환수", "전환수"), sales: col("총 전환매출액(원)", "전환매출액(원)") };
+  if (C.cost < 0) return { error: "총비용 열이 없습니다. 보고서에 총비용 항목을 넣고 다시 내려받으세요" };
+  const num = v => { const n = Number(String(v ?? "").replace(/[,\s원%]/g, "")); return Number.isFinite(n) ? n : 0; };
+  const zero = () => ({ imp: 0, clk: 0, cost: 0, conv: 0, sales: 0 });
+  const add = (o, r) => { o.imp += num(r[C.imp]); o.clk += num(r[C.clk]); o.cost += num(r[C.cost]); if (C.conv >= 0) o.conv += num(r[C.conv]); if (C.sales >= 0) o.sales += num(r[C.sales]); return o; };
+  const totals = zero(), days = new Map(), camps = new Map(), devs = new Map(), kws = new Map();
+  let n = 0;
+  for (const r of rows.slice(hi + 1)) {
+    if (r.length < h.length - 2 || !String(r[C.imp] ?? "").trim()) continue;
+    if (C.day >= 0 && /합계|총계/.test(r[C.day])) continue;
+    n++;
+    add(totals, r);
+    const bump = (m, key, extra) => { if (!key || key === "-") return; if (!m.has(key)) m.set(key, { ...zero(), ...extra }); add(m.get(key), r); };
+    if (C.day >= 0) bump(days, r[C.day].trim());
+    if (C.camp >= 0) bump(camps, r[C.camp].trim(), { type: C.ctype >= 0 ? r[C.ctype].trim() : "" });
+    if (C.dev >= 0) bump(devs, r[C.dev].trim());
+    if (C.kw >= 0) bump(kws, r[C.kw].trim());
+  }
+  if (!n) return { error: "보고서에 성과 행이 없습니다. 기간을 확인하고 다시 내려받으세요" };
+  const title = rows.slice(0, hi).flat().join(" ");
+  const pm = title.match(/(\d{4}\.\s?\d{1,2}\.\s?\d{1,2}\.?)\s*~\s*(\d{4}\.\s?\d{1,2}\.\s?\d{1,2}\.?)/);
+  const dk = [...days.keys()].sort();
+  const period = pm ? `${pm[1]} ~ ${pm[2]}` : dk.length ? `${dk[0]} ~ ${dk[dk.length - 1]}` : "";
+  const list = (m, k) => [...m.entries()].map(([name, v]) => ({ [k]: name, ...v }));
+  return {
+    file: String(fileName || "").slice(0, 80), period, rows: n,
+    totals,
+    days: list(days, "d").sort((a, b) => a.d.localeCompare(b.d)).slice(-92),
+    camps: list(camps, "name").sort((a, b) => b.cost - a.cost || b.imp - a.imp).slice(0, 20),
+    devs: list(devs, "name").sort((a, b) => b.imp - a.imp),
+    kws: list(kws, "kw").sort((a, b) => b.clk - a.clk || b.imp - a.imp).slice(0, 15),
+    kwN: kws.size
+  };
+}
+async function onAdFile(input, form, k) {
+  const file = input.files?.[0];
+  const note = form.querySelector(`[data-adnote="${k}"]`), pv = form.querySelector(`[data-adpv="${k}"]`);
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { flash(note, false, "5MB 이하 파일만 올릴 수 있습니다. 기간을 줄여 다시 내려받으세요"); input.value = ""; return; }
+  const buf = await file.arrayBuffer();
+  let text = new TextDecoder("utf-8").decode(buf);
+  if (!text.includes("노출수")) { try { text = new TextDecoder("euc-kr").decode(buf); } catch {} }
+  const r = parseAdReport(text, file.name);
+  input.value = "";
+  if (r.error) { flash(note, false, r.error); return; }
+  form.elements.namedItem(k).value = JSON.stringify(r);
+  form.dataset.dirty = "1";
+  pv.innerHTML = adReportHtml(r);
+  flash(note, true, `${r.rows}행을 읽었습니다. 아래 저장하기를 눌러야 대시보드에 반영됩니다`);
+}
+const won = v => `${Math.round(v).toLocaleString("ko-KR")}원`;
+const cnt = v => Math.round(v).toLocaleString("ko-KR");
+const pct = (a, b) => (b ? (a / b * 100).toFixed(2) + "%" : "-");
+function adReportHtml(a) {
+  const t = a.totals || {};
+  const tiles = [["노출수", cnt(t.imp)], ["클릭수", cnt(t.clk)], ["클릭률", pct(t.clk, t.imp)], ["평균 클릭비용", t.clk ? won(t.cost / t.clk) : "-"], ["총비용", won(t.cost)], ["전환수", t.conv ? `${cnt(t.conv)} · ${pct(t.conv, t.clk)}` : "0"]];
+  const days = a.days || [], maxImp = Math.max(1, ...days.map(d => d.imp)), maxClk = Math.max(1, ...days.map(d => d.clk));
+  const devs = (a.devs || []).filter(d => d.imp), devSum = devs.reduce((s, d) => s + d.imp, 0) || 1, devClk = devs.reduce((s, d) => s + d.clk, 0) || 1;
+  const row = (name, v, extra = "") => `<tr><th>${esc(name)}${extra}</th><td>${cnt(v.imp)}</td><td>${cnt(v.clk)}</td><td>${pct(v.clk, v.imp)}</td><td>${v.clk ? won(v.cost / v.clk) : "-"}</td><td>${won(v.cost)}</td></tr>`;
+  const head = first => `<thead><tr><th>${first}</th><th>노출</th><th>클릭</th><th>클릭률</th><th>평균 CPC</th><th>비용</th></tr></thead>`;
+  return `<div class="adrep">
+    <p class="adper mono">${esc(a.period || "")}${a.period ? " · " : ""}네이버 검색광고</p>
+    <div class="adk">${tiles.map(([k, v]) => `<div><span class="mono">${k}</span><b>${v}</b></div>`).join("")}</div>
+    ${days.length > 1 ? `<div class="adsub"><h4>일별 추이</h4><div class="addays">${days.map(d => `<div class="dd" title="${esc(d.d)} 노출 ${cnt(d.imp)} · 클릭 ${cnt(d.clk)} · ${won(d.cost)}"><span class="bars"><i class="bi" style="height:${(d.imp / maxImp * 100).toFixed(1)}%"></i><i class="bc" style="height:${(d.clk / maxClk * 100).toFixed(1)}%"></i></span><small class="mono">${esc(d.d.replace(/^\d{4}\.\s?/, "").replace(/\.$/, ""))}</small><em class="mono">${cnt(d.clk)}</em></div>`).join("")}</div><p class="adleg mono"><span class="li"></span>노출 <span class="lc"></span>클릭 (막대 아래 숫자)</p></div>` : ""}
+    ${devs.length ? `<div class="adsub"><h4>기기별 비중</h4>${devs.map(d => `<div class="addev"><span>${esc(d.name)}</span><span class="track"><span style="width:${(d.imp / devSum * 100).toFixed(1)}%"></span></span><span class="mono">노출 ${Math.round(d.imp / devSum * 100)}% · 클릭 ${Math.round(d.clk / devClk * 100)}%</span></div>`).join("")}</div>` : ""}
+    ${(a.camps || []).length ? `<div class="adsub"><h4>캠페인별</h4><div class="tbl-wrap"><table class="tbl adtbl">${head("캠페인")}<tbody>${a.camps.map(c => row(c.name, c, c.type ? ` <small class="muted">${esc(c.type)}</small>` : "")).join("")}</tbody></table></div></div>` : ""}
+    ${(a.kws || []).length ? `<div class="adsub"><h4>키워드 상위 ${a.kws.length}개<small class="muted"> / 전체 ${cnt(a.kwN || a.kws.length)}개, 클릭순</small></h4><div class="tbl-wrap"><table class="tbl adtbl">${head("키워드")}<tbody>${a.kws.map(k => row(k.kw, k)).join("")}</tbody></table></div></div>` : ""}
+  </div>`;
+}
+
 /* 결과 입력 폼 */
 function inputHtml(f, name) {
   const ph = f.ph ? ` placeholder="${esc(f.ph)}"` : "";
@@ -987,6 +1091,14 @@ function inputHtml(f, name) {
 function fieldHtml(f) {
   if (f.type === "checks") {
     return `<fieldset class="fchecks"><legend class="mono">${esc(f.label)}</legend><div class="chkl">${f.options.map(o => `<label class="chk"><input type="checkbox" name="${f.k}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join("")}</div></fieldset>`;
+  }
+  if (f.type === "adreport") {
+    return `<fieldset class="fad wide"><legend class="mono">${esc(f.label)}</legend>
+      <label class="upbox"><input type="file" data-adfile="${f.k}" accept=".csv,text/csv"><span><b>보고서 파일 선택</b>네이버 검색광고 다차원 보고서 CSV</span></label>
+      <input type="hidden" name="${f.k}">
+      <p class="note mono" data-adnote="${f.k}" role="status"></p>
+      <div class="adpv" data-adpv="${f.k}"></div>
+    </fieldset>`;
   }
   if (f.type === "tree-pick" || f.type === "tree-count") {
     return `<fieldset class="ftree"><legend class="mono">${esc(f.label)}</legend>${treeHtml(TREES[f.tree], { mode: f.type === "tree-pick" ? "pick" : "count", k: f.k })}</fieldset>`;
@@ -1016,6 +1128,7 @@ function collectForm(form, t) {
   for (const f of t.fields) {
     if (f.type === "checks") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
     else if (f.type === "tree-pick") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
+    else if (f.type === "adreport") { try { out[f.k] = JSON.parse(el(f.k)?.value || "null"); } catch { out[f.k] = null; } }
     else if (f.type === "tree-count") { out[f.k] = {}; walk(TREES[f.tree], n => { if (!isCount(n)) return; const v = val(`${f.k}.${n.id}`); out[f.k][n.id] = v === "" ? "" : Math.max(0, Math.round(Number(v)) || 0); }); }
     else if (f.type === "grid") out[f.k] = f.rows.map((_, i) => Object.fromEntries(f.cols.map(c => [c.k, val(`${f.k}.${i}.${c.k}`)])));
     else if (f.type === "group") out[f.k] = Array.from({ length: f.count }, (_, i) => Object.fromEntries(f.fields.map(x => [x.k, val(`${f.k}.${i}.${x.k}`, x.type)])));
@@ -1032,7 +1145,8 @@ function fillForm(form, t, r) {
   for (const f of t.fields) {
     if (f.type === "checks") { const on = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = on.has(x.value); }); }
     else if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
-    else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id]); });
+    else if (f.type === "adreport") { set(f.k, r[f.k] ? JSON.stringify(r[f.k]) : ""); const pv = form.querySelector(`[data-adpv="${f.k}"]`); if (pv) pv.innerHTML = r[f.k] ? adReportHtml(r[f.k]) : ""; }
+    else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id] ?? auto?.[f.k]?.[n.id]); });
     else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k] ?? auto?.[f.k]?.[i]?.[c.k])));
     else if (f.type === "group") Array.from({ length: f.count }).forEach((_, i) => f.fields.forEach(x => set(`${f.k}.${i}.${x.k}`, r[f.k]?.[i]?.[x.k] ?? auto?.[f.k]?.[i]?.[x.k] ?? (x.k === "name" && f.names ? (i === 0 ? (me()?.name || "나") : defaultRival(i)) : ""))));
     else set(f.k, r[f.k] ?? auto?.[f.k]);
@@ -1063,6 +1177,7 @@ const DERIVE = {
   },
   vibecoding_landing: () => landingDefaults(),
   vibecoding_deploy: ({ get }) => ({ url: get("vibecoding_setup").url || get("vibecoding_iterate").preview || "" }),
+  analysis_direct: ({ get }) => { const ad = get("execution_report").ad, t = ad?.totals; return t ? { counts: { n: t.imp, n_0: t.clk, n_1: Math.max(0, t.imp - t.clk) }, period: ad.period || "" } : {}; },
   execution_channels: ({ get }) => { const m = get("strategy_summary"); return { why: m.channel ? `전략 한 문장의 채널 ${m.channel} · ${m.stage || ""} 단계 공략`.trim() : "" }; }
 };
 function derive(st, t) {
