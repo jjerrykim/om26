@@ -45,9 +45,11 @@ service cloud.firestore {
     }
 
     function validStudent(d) {
-      return d.keys().hasOnly(['name', 'dept', 'sid', 'materials', 'results', 'files', 'updatedAt'])
+      return d.keys().hasOnly(['name', 'school', 'gender', 'dept', 'sid', 'materials', 'results', 'files', 'updatedAt'])
         && d.updatedAt == request.time
         && (!('name' in d) || (d.name is string && d.name.size() <= 20))
+        && (!('school' in d) || (d.school is string && d.school.size() <= 40))
+        && (!('gender' in d) || d.gender in ['', '여성', '남성'])
         && (!('dept' in d) || (d.dept is string && d.dept.size() <= 40))
         && (!('sid' in d) || (d.sid is string && d.sid.size() <= 20))
         && (!('materials' in d) || validMaterials(d.materials))
