@@ -408,6 +408,51 @@
     .note-body { font-size: 16px; }
   }
 
+  /* 검색광고 보고서 */
+  .gsteps { list-style: none; margin: 0 0 20px; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  .gsteps li { display: grid; align-content: start; gap: 10px; padding: 18px; background: color-mix(in srgb, var(--ink) 3%, transparent); border-radius: var(--r-lg); }
+  .gnum { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--signal); color: var(--paper); font-size: 13px; font-weight: 700; }
+  .gsteps b { font-size: var(--fs-body); }
+  .gsteps p { margin: 4px 0 0; font-size: var(--fs-sm); line-height: 1.6; color: var(--ink-2); word-break: keep-all; }
+  .gcols { min-width: 0; }
+  .gcols td:last-child { width: 1%; white-space: nowrap; }
+  .gnote { margin-top: 12px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .fad { display: grid; gap: 10px; min-width: 0; margin: 0; padding: 0; border: 0; }
+  .fad legend { margin-bottom: 8px; }
+  .adpv:not(:empty) { margin-top: 8px; padding: clamp(16px, 2.5vw, 24px); background: var(--paper); border-radius: var(--r-lg); }
+  .adrep { display: grid; gap: 28px; min-width: 0; }
+  .adper { margin: 0; color: var(--ink-3); font-size: var(--fs-sm); }
+  .adrep > .adper { margin-bottom: -16px; }
+  .adk { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; }
+  .adk div { display: grid; gap: 6px; padding: 16px 18px; background: color-mix(in srgb, var(--ink) 3%, transparent); }
+  .adk span { font-size: var(--fs-xs); color: var(--ink-3); }
+  .adk b { font-size: clamp(18px, 1.8vw, 24px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; overflow-wrap: anywhere; }
+  .adk div:nth-child(2) b, .adk div:nth-child(3) b { color: var(--signal); }
+  .adsub { display: grid; gap: 12px; min-width: 0; }
+  .adsub h4 { margin: 0; font-size: var(--fs-h3); }
+  .adsub h4 small { font-size: var(--fs-sm); font-weight: 500; }
+  .addays { display: flex; align-items: flex-end; gap: 6px; height: 170px; padding-bottom: 2px; overflow-x: auto; }
+  .addays .dd { flex: 1 0 34px; display: grid; grid-template-rows: 1fr auto auto; justify-items: center; gap: 4px; height: 100%; }
+  .addays .bars { display: flex; align-items: flex-end; gap: 3px; width: 100%; justify-content: center; height: 100%; }
+  .addays .bars i { display: block; width: 40%; max-width: 14px; min-height: 2px; border-radius: 3px 3px 0 0; }
+  .addays .bi, .adleg .li { background: color-mix(in srgb, var(--ink) 18%, transparent); }
+  .addays .bc, .adleg .lc { background: var(--signal); }
+  .addays small { font-size: 11px; color: var(--ink-3); }
+  .addays em { font-style: normal; font-size: 12px; font-weight: 600; color: var(--signal); }
+  .adleg { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-xs); color: var(--ink-3); }
+  .adleg span { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+  .adleg .lc { margin-left: 8px; }
+  .addev { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; font-size: var(--fs-sm); }
+  .addev .track { height: 8px; border-radius: 4px; background: var(--rule); overflow: hidden; }
+  .addev .track span { display: block; height: 100%; background: var(--signal); }
+  .addev .mono { color: var(--ink-2); }
+  .adtbl td { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .adtbl thead th:not(:first-child) { text-align: right; }
+  .adtbl tbody th { white-space: normal; min-width: 140px; }
+  .adtbl tbody th small { font-weight: 500; }
+  @media (max-width: 1100px) { .gsteps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .adk { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .gsteps { grid-template-columns: minmax(0, 1fr); } .gsteps li { grid-template-columns: 26px minmax(0, 1fr); gap: 12px; } .adk { grid-template-columns: repeat(2, minmax(0, 1fr)); } .addev { grid-template-columns: 52px minmax(0, 1fr); } .addev .mono { grid-column: 2; } }
+
   /* 결과 입력 */
   .result .sec-h { border-bottom-color: var(--signal); }
   .rform { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 28px; padding: clamp(16px, 3vw, 28px); background: color-mix(in srgb, var(--ink) 3%, transparent); border-radius: var(--r-lg); }
