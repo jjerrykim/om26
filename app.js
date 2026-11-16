@@ -643,12 +643,32 @@ function renderResult(data, st, t, r) {
         ${r.next ? `<p class="dnote"><span class="mono muted">다음에 고칠 것</span>${cell(r.next)}</p>` : ""}</div>`;
     }
     case "channels": {
-      const picks = r.picks || [];
-      const names = [];
-      walk(PROMO, n => { if (picks.includes(n.id)) { const path = []; for (let p = n.parent; p && p.depth > 0; p = p.parent) path.unshift(p.t); names.push({ path: path.join(" > "), t: n.t }); } });
-      return `${names.length ? `<div class="picked">${names.map(x => `<span><small>${esc(x.path)}</small>${esc(x.t)}</span>`).join("")}</div>` : ""}
-        ${treeHtml(PROMO, { mode: "view", picks })}
-        ${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}`;
+      const picks = new Set(r.picks || []);
+      // 플랫폼 × 수단 표 : 검색광고 · 이미지광고(페이드), SEO · 인기도 순(오가닉)
+      const COLS = [["검색광고 SA", "검색광고", "paid"], ["이미지광고 DA", "이미지광고", "paid"], ["SEO", "SEO", "org"], ["인기도 순", "인기도 노출", "org"]];
+      const colNodes = COLS.map(([t]) => { let f = null; walk(PROMO, n => { if (!f && n.t === t && n.c) f = n; }); return f; });
+      const grid = new Map(), others = [];
+      walk(PROMO, n => {
+        if (!picks.has(n.id)) return;
+        const ci = colNodes.findIndex(c => c && n.parent === c);
+        if (ci >= 0) { if (!grid.has(n.t)) grid.set(n.t, new Set()); grid.get(n.t).add(ci); return; }
+        const path = []; for (let p = n.parent; p && p.depth > 0; p = p.parent) path.unshift(p.t);
+        others.push({ path: path.filter(x => x !== "온라인").join(" · "), t: n.t });
+      });
+      const ORDER = ["네이버", "구글", "인스타그램", "페이스북", "유튜브", "커머스 플랫폼"];
+      const plats = [...grid.keys()].sort((a, b) => (ORDER.indexOf(a) + 99) % 99 - (ORDER.indexOf(b) + 99) % 99);
+      const has = (ci, plat) => colNodes[ci]?.c?.some(x => x.t === plat);
+      const nPaid = plats.reduce((a, p) => a + [...grid.get(p)].filter(ci => COLS[ci][2] === "paid").length, 0);
+      const nOrg = plats.reduce((a, p) => a + [...grid.get(p)].filter(ci => COLS[ci][2] === "org").length, 0);
+      return `${plats.length ? `<div class="tbl-wrap"><table class="tbl chmx">
+          <thead><tr><th></th><th colspan="2" class="grp paid">유료 · 페이드<small>${nPaid}개</small></th><th colspan="2" class="grp org">무료 · 오가닉<small>${nOrg}개</small></th></tr>
+          <tr><th>플랫폼</th>${COLS.map(([, l, k]) => `<th class="${k}">${l}</th>`).join("")}</tr></thead>
+          <tbody>${plats.map(p => `<tr><th>${esc(p)}</th>${COLS.map(([, , k], ci) => `<td class="${k}">${grid.get(p).has(ci) ? `<i class="mk" aria-label="선택"></i>` : has(ci, p) ? "" : `<span class="na" title="해당 없음">·</span>`}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table></div>` : ""}
+        ${others.length ? `<div class="chother">${others.map(x => `<span><small>${esc(x.path)}</small>${esc(x.t)}</span>`).join("")}</div>` : ""}
+        ${!plats.length && !others.length ? `<p class="muted">고른 채널 없음</p>` : ""}
+        ${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}
+        <details class="treefold"><summary>${icon("down")}전체 촉진 지도 보기</summary>${treeHtml(PROMO, { mode: "view", picks: [...picks] })}</details>`;
     }
     case "report":
       return `${r.ad ? adReportHtml(r.ad) : `<p class="muted">보고서 파일 없음</p>`}
