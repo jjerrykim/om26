@@ -453,6 +453,28 @@
   @media (max-width: 1100px) { .gsteps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .adk { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 640px) { .gsteps { grid-template-columns: minmax(0, 1fr); } .gsteps li { grid-template-columns: 26px minmax(0, 1fr); gap: 12px; } .adk { grid-template-columns: repeat(2, minmax(0, 1fr)); } .addev { grid-template-columns: 52px minmax(0, 1fr); } .addev .mono { grid-column: 2; } }
 
+  /* 전체보기 채널 설계 비교 */
+  .chtop { display: grid; gap: 10px; margin-bottom: 20px; }
+  .chtop ol { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .chtop li { display: inline-flex; align-items: baseline; gap: 8px; padding: 8px 14px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 4%, transparent); }
+  .chtop li.paid { background: color-mix(in srgb, var(--signal) 8%, var(--paper)); color: var(--signal); }
+  .chtop li.org { background: color-mix(in srgb, #1f7a4d 9%, var(--paper)); color: #1f7a4d; }
+  .chtop li b { font-size: var(--fs-sm); }
+  .chtop li span { font-size: 12px; opacity: .8; }
+  .chcmp-t { min-width: 760px; }
+  .chcmp-t thead th small { margin-left: 6px; font-weight: 500; }
+  .chcmp-t thead th.paid { color: var(--signal); }
+  .chcmp-t thead th.org { color: #1f7a4d; }
+  .chcmp-t td, .chcmp-t tbody th { vertical-align: middle; }
+  .chcmp-t td.paid { background: color-mix(in srgb, var(--signal) 3%, transparent); }
+  .chcmp-t td.org { background: color-mix(in srgb, #1f7a4d 3%, transparent); }
+  .chcmp-t .pt { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .chcmp-t td.paid .pt { color: var(--signal); background: color-mix(in srgb, var(--signal) 10%, var(--paper)); }
+  .chcmp-t td.org .pt { color: #1f7a4d; background: color-mix(in srgb, #1f7a4d 11%, var(--paper)); }
+  .chcmp-t td.etc .pt { color: var(--ink-2); background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .chcmp-t tbody th a:hover { color: var(--signal); }
+  .chcmp-t tr.me { background: color-mix(in srgb, var(--signal) 5%, transparent); }
+
   /* 전체보기 검색광고 비교 */
   .adcmp { margin-bottom: clamp(48px, 8vw, 120px); }
   .adcmp:empty { display: none; }
