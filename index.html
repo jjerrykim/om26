@@ -475,6 +475,20 @@
   .chcmp-t tbody th a:hover { color: var(--signal); }
   .chcmp-t tr.me { background: color-mix(in srgb, var(--signal) 5%, transparent); }
 
+  /* 전체보기 메타 광고 비교 */
+  .metagal { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px 16px; align-items: start; }
+  .metagal li { display: grid; gap: 8px; min-width: 0; }
+  .mg-who { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 26px; }
+  .mg-who b { font-size: var(--fs-sm); }
+  .mg-who:hover b { color: var(--signal); }
+  .metagal li.me .mock { border-color: var(--signal); box-shadow: 0 0 0 2px color-mix(in srgb, var(--signal) 20%, transparent); }
+  .metagal .mcopy { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0 14px 12px; padding: 0; font-size: 13px; }
+  .mhead div { min-width: 0; }
+  .mhead b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .metagal .mfoot b { font-size: 13px; }
+  .metagal .mcta { padding: 6px 10px; font-size: 12px; }
+  @media (max-width: 640px) { .metagal { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 10px; } .metagal .mhead { padding: 8px 10px; } .metagal .mcopy { margin: 0 10px 8px; font-size: 12px; } .metagal .mfoot { padding: 8px 10px; flex-wrap: wrap; } .metagal .mav { width: 26px; height: 26px; font-size: 12px; } .mg-who { flex-wrap: wrap; } }
+
   /* 전체보기 검색광고 비교 */
   .adcmp { margin-bottom: clamp(48px, 8vw, 120px); }
   .adcmp:empty { display: none; }

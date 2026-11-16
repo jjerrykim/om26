@@ -671,20 +671,13 @@ function renderResult(data, st, t, r) {
         ${u ? `<div class="utmv"><span class="mono muted">UTM 링크 · ${esc(r.utm.ch || "")}</span><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>` : ""}`;
     }
     case "meta": {
-      const base = siteBase(data), host = base ? base.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "";
-      const brand = host ? host.split(".")[0] : (data.name || "내 브랜드");
+      const base = siteBase(data);
       const ms = resultOf(data, st, st.tasks.find(x => x.id === "measure"))?.utm;
       const link = utmUrl(base, UTM_CH[0][0], ms?.campaign);
-      const img = uidOf(data) ? filesOf(data, taskKey(st, t)).find(([, f]) => isImg(f)) : null;
       const stp = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "stp")) || {};
       const ti = parseInt(String(stp.first || "").replace(/\D/g, ""), 10) - 1, seg = stp.segs?.[ti];
       return `<div class="metaad">
-        <div class="mock">
-          <div class="mhead"><i class="mav">${esc(brand.slice(0, 1).toUpperCase())}</i><div><b>${esc(brand)}</b><small>광고</small></div></div>
-          ${r.copy ? `<p class="mcopy">${nl(r.copy)}</p>` : ""}
-          <div class="mimg">${img ? `<img data-thumb="${esc(uidOf(data))}/${esc(img[0])}" alt="광고 이미지">` : `<span class="mono">이미지를 올리면 여기에 보입니다</span>`}</div>
-          <div class="mfoot"><div><small>${esc(host || "내사이트.web.app")}</small><b>${esc(r.title || "제목")}</b></div><span class="mcta">더 알아보기</span></div>
-        </div>
+        ${metaMockHtml(data, uidOf(data), r)}
         <div class="mmeta">
           <p class="dnote"><span class="mono muted">캠페인 목표</span>트래픽 (내 사이트 방문)</p>
           <p class="dnote"><span class="mono muted">타겟 · STP 1순위</span>${seg?.name ? `${esc(seg.name)}${seg.desc ? `<small class="muted">${esc(seg.desc)}</small>` : ""}` : `<span class="muted">STP를 저장하면 표시됩니다</span>`}</p>
@@ -1049,6 +1042,19 @@ async function copyPrompt(btn) {
   setTimeout(() => { btn.innerHTML = old; }, 1800);
 }
 
+// 메타 광고 미리보기 카드 (인스타그램 피드 모양)
+function metaMockHtml(data, uid, r) {
+  const st = stageOf("execution"), t = st.tasks.find(x => x.id === "meta");
+  const base = siteBase(data), host = base ? base.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "";
+  const brand = host ? host.split(".")[0] : (data.name || "내 브랜드");
+  const img = uid ? filesOf(data, taskKey(st, t)).find(([, f]) => isImg(f)) : null;
+  return `<div class="mock">
+    <div class="mhead"><i class="mav">${esc(brand.slice(0, 1).toUpperCase())}</i><div><b>${esc(brand)}</b><small>광고</small></div></div>
+    ${r.copy ? `<p class="mcopy">${nl(r.copy)}</p>` : ""}
+    <div class="mimg">${img ? `<img data-thumb="${esc(uid)}/${esc(img[0])}" alt="광고 이미지">` : `<span class="mono">이미지를 올리면 여기에 보입니다</span>`}</div>
+    <div class="mfoot"><div><small>${esc(host || "내사이트.web.app")}</small><b>${esc(r.title || "제목")}</b></div><span class="mcta">더 알아보기</span></div>
+  </div>`;
+}
 /* UTM 링크 : 채널 이름 규칙 (7주차 자료 기준) */
 const UTM_CH = [["메타 광고 (인스타그램)", "instagram", "paid_social"], ["인스타 프로필 링크", "instagram", "social"], ["카톡방 공유", "kakao", "social"], ["네이버 블로그 글", "naver_blog", "referral"], ["이메일 · 뉴스레터", "newsletter", "email"]];
 const utmSlug = v => String(v || "").trim().toLowerCase().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "").slice(0, 40);
@@ -1632,8 +1638,10 @@ function mountClass() {
     <section class="race" id="race" aria-label="진도 트랙"></section>
     <main><ol class="roster" id="roster"></ol></main>
     <section class="sec adcmp" id="chcmp" aria-label="채널 설계 비교"></section>
+    <section class="sec adcmp" id="metacmp" aria-label="메타 광고 비교"></section>
     <section class="sec adcmp" id="adcmp" aria-label="검색광고 성과 비교"></section>`;
   raceAnim = true;
+  $("metacmp").addEventListener("click", e => { const b = e.target.closest("[data-metarun]"); if (b) { metaRun = b.dataset.metarun; paintMetaCompare(); } });
   $("adcmp").addEventListener("click", e => { const b = e.target.closest("[data-adsort]"); if (b) { adSort = b.dataset.adsort; paintAdCompare(); } });
   $("q").addEventListener("input", paintRoster);
   $("roster").addEventListener("click", e => {
@@ -1687,7 +1695,29 @@ function paintClass() {
   }
   paintRoster();
   paintChannelCompare();
+  paintMetaCompare();
   paintAdCompare();
+}
+// 메타 광고 비교 : 학생별 광고 미리보기 카드, 집행 방법으로 거르기 (우수작 투표용)
+let metaRun = "";
+function paintMetaCompare() {
+  const el = $("metacmp");
+  if (!el || !app.loaded) return;
+  const st = stageOf("execution"), t = st?.tasks.find(x => x.id === "meta");
+  if (!t) { el.innerHTML = ""; return; }
+  const all = sortedStudents().map(([uid, s]) => ({ uid, s, r: resultOf(s, st, t) })).filter(x => x.r && (x.r.copy || x.r.title));
+  const head = `<h2 class="sec-h">메타 광고 비교<span>광고 운영 · 메타 광고 기획서를 저장한 학생</span></h2>`;
+  if (!all.length) { el.innerHTML = `${head}<p class="empty mono">아직 메타 광고 기획서를 저장한 학생이 없습니다</p>`; return; }
+  const runs = t.fields.find(f => f.k === "run").options;
+  const n = k => all.filter(x => !k || x.r.run === k).length;
+  const list = all.filter(x => !metaRun || x.r.run === metaRun);
+  el.innerHTML = `${head}
+    <div class="adsort" role="group" aria-label="집행 방법">${[["", "전체"], ...runs.map(k => [k, k])].map(([k, l]) => `<button type="button" data-metarun="${esc(k)}" aria-pressed="${k === metaRun}">${esc(l)} ${n(k)}</button>`).join("")}</div>
+    ${list.length ? `<ul class="metagal">${list.map(x => `<li class="${x.uid === app.user?.uid ? "me" : ""}">
+      <a class="mg-who" href="#/s/${encodeURIComponent(x.uid)}"><b>${esc(x.s.name)}</b>${x.r.run ? `<span class="pill${x.r.run === "초안 저장" ? "" : " paid"}">${esc(x.r.run)}</span>` : ""}</a>
+      ${metaMockHtml(x.s, x.uid, x.r)}
+    </li>`).join("")}</ul>` : `<p class="empty mono">이 집행 방법을 고른 학생이 없습니다</p>`}`;
+  hydrateThumbs(el);
 }
 // 채널 설계 비교 : 학생별로 수단마다 고른 플랫폼, 위에는 많이 고른 조합
 function paintChannelCompare() {
