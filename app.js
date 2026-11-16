@@ -343,7 +343,7 @@ function paintDashboard(uid) {
   $("headline").innerHTML = `${esc(data.name || "이름")}<span class="sub">${uid === "case" ? "케이스 예시" : "학습 대시보드"}</span>`;
   document.title = data.name ? `${data.name} | 온라인마케팅실전` : "온라인마케팅실전 학습 포트폴리오";
 
-  $("facts").innerHTML = (data.facts || [["학과", data.dept], ["학번", data.sid]]).map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
+  $("facts").innerHTML = (data.facts || factsOf(data)).map(([k, v]) => `<dt class="mono">${k}</dt><dd>${esc(v || "-")}</dd>`).join("");
   if (mine && app.loaded && !data.name) { location.replace("#/profile"); return; }
 
   const tasks = allTasks();
@@ -418,7 +418,7 @@ function paintBoard(uid, data, mine) {
 function printDash(uid, mode) {
   const data = (uid === "case" ? CASE : app.students.get(uid)) || {};
   const stages = mode === "all" ? STAGES : [stageOf(dashTab[uid]) || STAGES[0]];
-  const facts = data.facts || [["학과", data.dept], ["학번", data.sid]];
+  const facts = data.facts || factsOf(data);
   const d = new Date();
   const day = `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())}`;
   let root = $("print-root");
@@ -1511,13 +1511,20 @@ async function deleteNote(id) {
   try { await fsMod.deleteDoc(fsMod.doc(db, "notes", id)); if (open) location.hash = "#/note"; }
   catch { alert("삭제하지 못했습니다."); }
 }
+// 대시보드 정보 : 학교 · 성별은 입력한 경우에만
+const factsOf = d => [...(d.school ? [["학교", d.school]] : []), ["학과", d.dept], ["학번", d.sid], ...(d.gender ? [["성별", d.gender]] : [])];
+// 학과 입력 추천 목록 (직접 입력도 가능)
+const DEPTS = ["광고홍보학과", "경영학과", "벤처창업학과", "마케팅학과", "경영정보학과", "회계학과", "세무학과", "경제학과", "금융학과", "국제통상학과", "무역학과", "관광경영학과", "호텔경영학과", "외식경영학과", "항공서비스학과", "미디어영상학과", "언론영상학과", "신문방송학과", "커뮤니케이션학과", "디지털미디어학과", "문헌정보학과", "사회학과", "심리학과", "행정학과", "정치외교학과", "법학과", "경찰행정학과", "소비자학과", "식품영양학과", "패션마케팅학과", "패션디자인학과", "시각디자인학과", "산업디자인학과", "실내디자인학과", "영상애니메이션학과", "게임학과", "컴퓨터공학과", "소프트웨어학과", "정보통신공학과", "데이터사이언스학과", "통계학과", "산업공학과", "국어국문학과", "영어영문학과", "중국어문학과", "일본어문학과", "교육학과", "체육학과", "스포츠마케팅학과", "음악학과", "미술학과", "간호학과"];
 function mountProfile() {
   $("view").innerHTML = `
     <header class="class-head"><div><h1>내정보</h1><p class="mono muted">대시보드와 전체보기에 표시되는 정보입니다.</p></div></header>
     <main class="task-page"><section class="sec">
       <form class="rform" id="profile" autocomplete="off">
         <label class="field"><span class="mono">이름</span><input name="name" maxlength="20" placeholder="이름" required></label>
-        <label class="field"><span class="mono">학과</span><input name="dept" maxlength="40" placeholder="학과"></label>
+        <label class="field"><span class="mono">학교 <small class="opt">선택</small></span><input name="school" maxlength="40" placeholder="예: 계명대학교"></label>
+        <label class="field"><span class="mono">성별 <small class="opt">선택</small></span><select name="gender"><option value="">선택 안 함</option><option>여성</option><option>남성</option></select></label>
+        <label class="field"><span class="mono">학과</span><input name="dept" maxlength="40" placeholder="입력하거나 목록에서 고르세요" list="dept-list"></label>
+        <datalist id="dept-list">${DEPTS.map(d => `<option value="${esc(d)}">`).join("")}</datalist>
         <label class="field"><span class="mono">학번</span><input name="sid" maxlength="20" inputmode="numeric" placeholder="학번"></label>
         <label class="field"><span class="mono">로그인 계정</span><input value="${esc(app.user?.email || "")}" disabled></label>
         <div class="actions"><button class="btn" type="submit">저장하기</button><p class="note mono" id="profile-note" role="status"></p><button class="btn ghost logout" type="button" data-act="logout">로그아웃</button></div>
@@ -1538,6 +1545,8 @@ function paintProfile() {
   const data = me() || {};
   if (!f || f.dataset.dirty || f.contains(document.activeElement)) return;
   f.elements.name.value = data.name || "";
+  f.elements.school.value = data.school || "";
+  f.elements.gender.value = data.gender || "";
   f.elements.dept.value = data.dept || "";
   f.elements.sid.value = data.sid || "";
   if (app.loaded && !data.name) flash($("profile-note"), false, "처음 오셨네요. 이름을 입력하고 저장하세요");
@@ -1563,6 +1572,8 @@ function onProfileSubmit(e) {
   const f = e.target;
   const note = $("profile-note");
   const patch = { name: f.elements.name.value.trim(), dept: f.elements.dept.value.trim(), sid: f.elements.sid.value.trim() };
+  // 선택 항목은 입력했거나 전에 저장한 적이 있을 때만 보냄
+  for (const k of ["school", "gender"]) { const v = f.elements[k].value.trim(); if (v || k in (me() || {})) patch[k] = v; }
   if (!patch.name) { flash(note, false, "이름을 입력하세요"); return; }
   withBusy(f, async () => {
     try {
@@ -1632,7 +1643,7 @@ function mountClass() {
       <div><h1>전체보기</h1><p class="mono muted" id="class-sum"></p></div>
       <div class="class-tools">
         ${isAdmin() ? `<div class="bulk"><button class="dlbtn" type="button" id="bulk" aria-live="polite" title="전체 학생의 연습 파일을 ZIP 하나로 받기">${icon("down2")}<span class="t">연습 파일</span><span class="n">0</span></button></div>` : ""}
-        <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학과, 학번"></label>
+        <label class="field"><span class="mono">검색</span><input id="q" type="search" placeholder="이름, 학교, 학과, 학번"></label>
       </div>
     </header>
     <section class="race" id="race" aria-label="진도 트랙"></section>
@@ -1797,14 +1808,14 @@ function paintRoster() {
   if (app.error) { el.innerHTML = `<li class="empty mono">${esc(app.error)}</li>`; return; }
   const q = $("q").value.trim().toLowerCase();
   const tasks = allTasks();
-  const list = sortedStudents().filter(([, s]) => !q || [s.name, s.dept, s.sid].some(v => String(v || "").toLowerCase().includes(q)));
+  const list = sortedStudents().filter(([, s]) => !q || [s.name, s.school, s.dept, s.sid].some(v => String(v || "").toLowerCase().includes(q)));
   if (!list.length) { el.innerHTML = `<li class="empty mono">${q ? "검색 결과 없음" : "아직 등록한 학생이 없습니다"}</li>`; return; }
   el.innerHTML = list.map(([uid, s]) => {
     const d = tasks.filter(x => taskDone(s, x.stage, x.task)).length;
     // 설치와 첫 배포에서 올린 사이트 주소 (행 링크 안이라 span으로 두고 클릭 시 새 탭)
     const site = safeUrl(s.results?.vibecoding_setup?.url);
     return `<li><a class="r" href="#/s/${encodeURIComponent(uid)}">
-      <span class="who"><span class="nm${uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span>${stampsHtml(s)}<span class="meta">${esc([s.dept, s.sid].filter(Boolean).join(" · "))}</span></span>
+      <span class="who"><span class="nm${uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span>${stampsHtml(s)}<span class="meta">${esc([s.school, s.dept, s.sid].filter(Boolean).join(" · "))}</span></span>
       <span class="site">${site ? `<span class="sitelink" role="link" tabindex="0" data-site="${esc(site)}" title="${esc(site)}">${icon("ext")}<span>${esc(site.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</span></span>` : ""}</span>
       ${bar(d, tasks.length)}
       <span class="cnt mono">${d} / ${tasks.length}</span>
