@@ -216,7 +216,7 @@
   .class-tools .field { width: 320px; }
   @media (max-width: 640px) { .class-tools { flex-direction: column-reverse; align-items: stretch; width: 100%; } .class-tools .field, .bulk .dlbtn { width: 100%; justify-content: center; } }
   .roster { list-style: none; margin: 0 0 clamp(48px, 8vw, 120px); padding: 0; }
-  .roster .r { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 280px) 56px 20px; gap: 24px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--rule); transition: background-color .2s; }
+  .roster .r { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 240px) minmax(120px, 280px) 56px 20px; gap: 24px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--rule); transition: background-color .2s; }
   .roster .r:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
   .roster .r:hover .nm, .roster .r:hover .go { color: var(--signal); }
   .roster .who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; min-width: 0; }
@@ -224,6 +224,11 @@
   .roster .nm.me::after { content: "나"; margin-left: 6px; font: 500 11px var(--sans); color: var(--signal); }
   .roster .meta { color: var(--ink-3); font-size: var(--fs-sm); }
   .roster .cnt { text-align: right; color: var(--ink-2); }
+  .roster .site { min-width: 0; }
+  .roster .sitelink { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 5px 12px 5px 9px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); color: var(--ink-2); background: var(--paper); cursor: pointer; transition: color .15s, border-color .15s; }
+  .roster .sitelink span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .roster .sitelink .ic { flex: none; width: 14px; height: 14px; }
+  .roster .sitelink:hover, .roster .sitelink:focus-visible { color: var(--signal); border-color: var(--signal); outline: none; }
   .roster .go { color: var(--ink-3); display: grid; place-items: center; }
   .roster .go .ic { width: 16px; height: 16px; }
   .roster li:has(.del) { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--rule); }
@@ -677,7 +682,9 @@
     .topbar nav .hide-sm { display: none; }
     .topbar nav .link { font-size: 13px; }
     .roster .r { grid-template-columns: minmax(0, 1fr) 48px; gap: 10px 12px; }
-    .roster .r .rate { grid-column: 1 / -1; grid-row: 2; }
+    .roster .r .rate { grid-column: 1 / -1; grid-row: 3; }
+    .roster .site { grid-column: 1 / -1; grid-row: 2; }
+    .roster .site:empty { display: none; }
     .roster .go { display: none; }
     .brand img { height: 34px; }
   }

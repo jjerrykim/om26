@@ -50,6 +50,7 @@ const ICON = {
   left: "M15 6l-6 6 6 6",
   right: "M9 6l6 6-6 6",
   ur: "M9 6l6 6-6 6",
+  ext: "M14 5h5v5M19 5l-8 8M18 14v5H5V6h5",
   check: "M5 12.5l4.5 4.5L19 7.5",
   copy: "M9 9h10v10H9zM5 15V5h10",
   down2: "M12 4v11M7 10l5 5 5-5M5 20h14",
@@ -1407,7 +1408,12 @@ function mountClass() {
     <main><ol class="roster" id="roster"></ol></main>`;
   raceAnim = true;
   $("q").addEventListener("input", paintRoster);
-  $("roster").addEventListener("click", e => { const b = e.target.closest("[data-delstudent]"); if (b) deleteStudent(b.dataset.delstudent); });
+  $("roster").addEventListener("click", e => {
+    const site = e.target.closest("[data-site]");
+    if (site) { e.preventDefault(); window.open(site.dataset.site, "_blank", "noopener"); return; }
+    const b = e.target.closest("[data-delstudent]"); if (b) deleteStudent(b.dataset.delstudent);
+  });
+  $("roster").addEventListener("keydown", e => { const site = e.target.closest?.("[data-site]"); if (site && e.key === "Enter") { e.preventDefault(); window.open(site.dataset.site, "_blank", "noopener"); } });
   $("bulk")?.addEventListener("click", downloadAllFiles);
 }
 function sortedStudents() {
@@ -1464,8 +1470,11 @@ function paintRoster() {
   if (!list.length) { el.innerHTML = `<li class="empty mono">${q ? "검색 결과 없음" : "아직 등록한 학생이 없습니다"}</li>`; return; }
   el.innerHTML = list.map(([uid, s]) => {
     const d = tasks.filter(x => taskDone(s, x.stage, x.task)).length;
+    // 설치와 첫 배포에서 올린 사이트 주소 (행 링크 안이라 span으로 두고 클릭 시 새 탭)
+    const site = safeUrl(s.results?.vibecoding_setup?.url);
     return `<li><a class="r" href="#/s/${encodeURIComponent(uid)}">
       <span class="who"><span class="nm${uid === app.user.uid ? " me" : ""}">${esc(s.name)}</span>${stampsHtml(s)}<span class="meta">${esc([s.dept, s.sid].filter(Boolean).join(" · "))}</span></span>
+      <span class="site">${site ? `<span class="sitelink" role="link" tabindex="0" data-site="${esc(site)}" title="${esc(site)}">${icon("ext")}<span>${esc(site.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</span></span>` : ""}</span>
       ${bar(d, tasks.length)}
       <span class="cnt mono">${d} / ${tasks.length}</span>
       <span class="go">${icon("right")}</span>
