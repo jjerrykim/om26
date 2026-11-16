@@ -1195,6 +1195,7 @@ function mountNote(id) {
       <article class="note-doc" id="note-doc"></article>
     </main>`;
   $("note-new")?.addEventListener("click", newNote);
+  $("note-list").addEventListener("click", e => { const b = e.target.closest("[data-delnote]"); if (b) deleteNote(b.dataset.delnote); });
   noteTick = setInterval(() => { if (!mounted.startsWith("note:")) { clearInterval(noteTick); return; } const w = $("note-when"), n = app.notes.get(w?.dataset.id); if (w && n) w.textContent = sinceText(n.updatedAt); }, 20000);
 }
 function paintNote(id, err = "") {
@@ -1202,7 +1203,7 @@ function paintNote(id, err = "") {
   if (!list || !docEl) return;
   const notes = sortedNotes();
   const cur = id && app.notes.has(id) ? id : notes[0]?.[0] || "";
-  list.innerHTML = notes.map(([nid, n]) => `<a href="#/note/${encodeURIComponent(nid)}" ${nid === cur ? 'aria-current="page"' : ""}><span class="mono">${esc(noteDate(n.date))}</span><b>${esc(n.title || "제목 없음")}</b></a>`).join("");
+  list.innerHTML = notes.map(([nid, n]) => `<div class="ni"><a href="#/note/${encodeURIComponent(nid)}" ${nid === cur ? 'aria-current="page"' : ""}><span class="mono">${esc(noteDate(n.date))}</span><b>${esc(n.title || "제목 없음")}</b></a>${isAdmin() ? `<button class="ni-del" type="button" data-delnote="${esc(nid)}" title="이 노트 삭제" aria-label="${esc(n.title || "제목 없음")} 삭제"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ""}</div>`).join("");
   list.hidden = notes.length < 2 && !isAdmin();
   if (err || !app.notesLoaded || !cur) {
     docEl.dataset.id = "";
@@ -1229,9 +1230,10 @@ function paintNoteEditor(cur, n) {
       <div class="note-row">
         <label class="field"><span class="mono">날짜</span><input type="date" name="date"></label>
         <label class="field"><span class="mono">제목</span><input name="title" maxlength="100" placeholder="예: 5주차 바이브코딩"></label>
+        <button class="btn ghost sm note-del" type="button" id="note-del">이 노트 삭제</button>
       </div>
       <label class="field"><span class="mono">내용</span><textarea name="body" placeholder="쓰는 대로 학생 화면에 바로 보입니다&#10;# 제목&#10;- 목록&#10;\`\`\` 사이에 넣은 글은 복사 버튼이 붙습니다"></textarea></label>
-      <div class="note-actions"><p class="note mono" id="note-save" role="status"></p><button class="btn ghost sm" type="button" id="note-del">삭제</button></div>
+      <div class="note-actions"><p class="note mono" id="note-save" role="status"></p></div>
       <section class="note-preview"><h3 class="mono">학생에게 보이는 모습</h3><div class="note-body" id="note-pv"></div></section>
     </form>`;
     const fm = $("note-form");
@@ -1276,8 +1278,9 @@ async function deleteNote(id) {
   const n = app.notes.get(id);
   if (!confirm(`"${n?.title || "제목 없음"}" 노트를 삭제할까요? 되돌릴 수 없습니다.`)) return;
   const { db, fsMod } = app.fb;
-  clearTimeout($("note-form")?._timer);
-  try { await fsMod.deleteDoc(fsMod.doc(db, "notes", id)); location.hash = "#/note"; }
+  const open = $("note-doc")?.dataset.id === id;
+  if (open) clearTimeout($("note-form")?._timer);
+  try { await fsMod.deleteDoc(fsMod.doc(db, "notes", id)); if (open) location.hash = "#/note"; }
   catch { alert("삭제하지 못했습니다."); }
 }
 function mountProfile() {

@@ -368,6 +368,14 @@
   .note-list a:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); color: var(--ink); }
   .note-list a[aria-current="page"] { background: color-mix(in srgb, var(--signal) 8%, var(--paper)); color: var(--signal); }
   .note-list a[aria-current="page"] span { color: var(--signal); }
+  .note-list .ni { position: relative; }
+  .note-list .ni:has(.ni-del) a { padding-right: 40px; }
+  .ni-del { position: absolute; top: 50%; right: 6px; width: 30px; height: 30px; margin-top: -15px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-2); cursor: pointer; }
+  .ni-del .ic { width: 14px; height: 14px; }
+  .ni-del:hover, .ni-del:focus-visible { color: #b4232a; background: color-mix(in srgb, #b4232a 8%, transparent); outline: none; }
+  @media (hover: hover) { .ni-del { opacity: 0; transition: opacity .15s; } .ni:hover .ni-del, .ni-del:focus-visible { opacity: 1; } }
+  .btn.sm.note-del { align-self: end; height: 48px; padding: 0 16px; }
+  .btn.ghost.note-del:hover { color: #b4232a; border-color: color-mix(in srgb, #b4232a 30%, transparent); background: color-mix(in srgb, #b4232a 6%, transparent); }
   .note-doc { min-width: 0; max-width: 780px; }
   .note-meta { display: flex; align-items: center; gap: 12px; color: var(--ink-3); font-size: var(--fs-sm); }
   .note-meta .when:not(:empty)::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--signal); vertical-align: 2px; }
@@ -382,7 +390,7 @@
   .note-body .prompt { margin: 0 0 20px; }
   .note-body .prompt pre { font-size: 15px; }
   .note-edit { display: grid; gap: 18px; }
-  .note-row { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: end; }
+  .note-row { display: grid; grid-template-columns: 180px minmax(0, 1fr) auto; gap: 16px; align-items: end; }
   .note-row input { height: 48px; }
   .note-edit textarea { min-height: 320px; font-size: 16px; line-height: 1.75; resize: none; overflow: hidden; }
   .note-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
@@ -392,9 +400,11 @@
   @media (max-width: 760px) {
     .note-page { grid-template-columns: minmax(0, 1fr); gap: 20px; }
     .note-list { position: static; display: flex; gap: 6px; overflow-x: auto; margin: 0 calc(var(--gutter) * -1); padding: 0 var(--gutter) 4px; scrollbar-width: none; }
-    .note-list a { flex: none; max-width: 220px; border: 1px solid var(--rule); }
+    .note-list .ni { flex: none; }
+    .note-list a { max-width: 220px; border: 1px solid var(--rule); }
     .note-list a[aria-current="page"] { border-color: transparent; }
     .note-row { grid-template-columns: minmax(0, 1fr); }
+    .btn.sm.note-del { justify-self: start; height: 36px; }
     .note-body { font-size: 16px; }
   }
 
