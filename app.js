@@ -1523,8 +1523,10 @@ function mountClass() {
       </div>
     </header>
     <section class="race" id="race" aria-label="진도 트랙"></section>
-    <main><ol class="roster" id="roster"></ol></main>`;
+    <main><ol class="roster" id="roster"></ol></main>
+    <section class="sec adcmp" id="adcmp" aria-label="검색광고 성과 비교"></section>`;
   raceAnim = true;
+  $("adcmp").addEventListener("click", e => { const b = e.target.closest("[data-adsort]"); if (b) { adSort = b.dataset.adsort; paintAdCompare(); } });
   $("q").addEventListener("input", paintRoster);
   $("roster").addEventListener("click", e => {
     const site = e.target.closest("[data-site]");
@@ -1576,6 +1578,49 @@ function paintClass() {
     $("bulk").dataset.n = n;
   }
   paintRoster();
+  paintAdCompare();
+}
+// 검색광고 성과 비교 : 보고서를 올린 학생만, 정렬 기준 선택
+let adSort = "ctr";
+const AD_SORTS = [["ctr", "클릭률", (a, b) => b.ctr - a.ctr], ["clk", "클릭수", (a, b) => b.clk - a.clk], ["cpc", "평균 CPC 낮은 순", (a, b) => (a.cpc || Infinity) - (b.cpc || Infinity)], ["cost", "총비용", (a, b) => b.cost - a.cost]];
+function paintAdCompare() {
+  const el = $("adcmp");
+  if (!el || !app.loaded) return;
+  const st = stageOf("execution"), t = st?.tasks.find(x => x.id === "report");
+  if (!t) { el.innerHTML = ""; return; }
+  const rows = sortedStudents().map(([uid, s]) => ({ uid, s, a: resultOf(s, st, t)?.ad })).filter(x => x.a?.totals)
+    .map(x => { const v = x.a.totals; return { ...x, staff: isStaff(x.uid, x.s), imp: v.imp, clk: v.clk, cost: v.cost, conv: v.conv || 0, ctr: v.imp ? v.clk / v.imp : 0, cpc: v.clk ? v.cost / v.clk : 0 }; });
+  const head = `<h2 class="sec-h">검색광고 성과 비교<span>광고 운영 · 검색광고 성과 올리기에 보고서를 올린 학생</span></h2>`;
+  if (!rows.length) { el.innerHTML = `${head}<p class="empty mono">아직 보고서를 올린 학생이 없습니다</p>`; return; }
+  const sorter = AD_SORTS.find(x => x[0] === adSort) || AD_SORTS[0];
+  rows.sort(sorter[2]);
+  const cls = rows.filter(r => !r.staff), sum = k => cls.reduce((a, r) => a + r[k], 0);
+  const cImp = sum("imp"), cClk = sum("clk"), cCost = sum("cost");
+  const maxCtr = Math.max(...rows.map(r => r.ctr), 1e-9);
+  const avgCtr = cImp ? cClk / cImp : 0;
+  let rank = 0;
+  el.innerHTML = `${head}
+    <div class="adk adcls">
+      <div><span class="mono">올린 학생</span><b>${cls.length}명</b></div>
+      <div><span class="mono">반 전체 클릭률</span><b>${pct(cClk, cImp)}</b></div>
+      <div><span class="mono">반 평균 클릭비용</span><b>${cClk ? won(cCost / cClk) : "-"}</b></div>
+      <div><span class="mono">반 전체 노출</span><b>${cnt(cImp)}</b></div>
+      <div><span class="mono">반 전체 클릭</span><b>${cnt(cClk)}</b></div>
+      <div><span class="mono">반 전체 비용</span><b>${won(cCost)}</b></div>
+    </div>
+    <div class="adsort" role="group" aria-label="정렬">${AD_SORTS.map(([k, label]) => `<button type="button" data-adsort="${k}" aria-pressed="${k === sorter[0]}">${label}</button>`).join("")}</div>
+    <div class="tbl-wrap"><table class="tbl adtbl adcmp-t">
+      <thead><tr><th>순위</th><th>이름</th><th>기간</th><th>노출</th><th>클릭</th><th class="ctrh">클릭률</th><th>평균 CPC</th><th>비용</th><th>전환</th></tr></thead>
+      <tbody>${rows.map(r => `<tr class="${r.uid === app.user?.uid ? "me" : ""}">
+        <td class="mono">${r.staff ? "-" : ++rank}</td>
+        <th><a href="#/s/${encodeURIComponent(r.uid)}">${esc(r.s.name)}</a>${r.staff ? ` <small class="muted">교수자</small>` : ""}</th>
+        <td class="mono per">${esc(r.a.period || "")}</td>
+        <td>${cnt(r.imp)}</td><td>${cnt(r.clk)}</td>
+        <td class="ctr"><div class="cwrap"><span class="cbar"><i style="width:${(r.ctr / maxCtr * 100).toFixed(1)}%"></i>${avgCtr ? `<u style="left:${Math.min(100, avgCtr / maxCtr * 100).toFixed(1)}%" title="반 전체 클릭률 ${pct(cClk, cImp)}"></u>` : ""}</span><b>${pct(r.clk, r.imp)}</b></div></td>
+        <td>${r.clk ? won(r.cpc) : "-"}</td><td>${won(r.cost)}</td><td>${cnt(r.conv)}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>
+    <p class="adleg mono"><span class="lc"></span>클릭률 막대 <span class="lavg"></span>반 전체 클릭률 · 이름을 누르면 학생 대시보드</p>`;
 }
 function paintRoster() {
   const el = $("roster");

@@ -453,6 +453,37 @@
   @media (max-width: 1100px) { .gsteps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .adk { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 640px) { .gsteps { grid-template-columns: minmax(0, 1fr); } .gsteps li { grid-template-columns: 26px minmax(0, 1fr); gap: 12px; } .adk { grid-template-columns: repeat(2, minmax(0, 1fr)); } .addev { grid-template-columns: 52px minmax(0, 1fr); } .addev .mono { grid-column: 2; } }
 
+  /* 전체보기 검색광고 비교 */
+  .adcmp { margin-bottom: clamp(48px, 8vw, 120px); }
+  .adcmp:empty { display: none; }
+  .adcls { margin-bottom: 20px; }
+  .adsort { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .adsort button { height: 32px; padding: 0 14px; border: 1px solid var(--rule); border-radius: 999px; background: var(--paper); color: var(--ink-2); font: 500 13px var(--sans); cursor: pointer; }
+  .adsort button:hover { border-color: var(--ink-3); color: var(--ink); }
+  .adsort button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .adcmp-t { min-width: 860px; }
+  .adcmp-t tbody th a:hover { color: var(--signal); }
+  .adcmp-t tr.me { background: color-mix(in srgb, var(--signal) 5%, transparent); }
+  .adcmp-t td.per { text-align: left; color: var(--ink-3); font-size: 12px; }
+  .adcmp-t thead th:nth-child(-n+3) { text-align: left; }
+  .adcmp-t td:first-child { text-align: left; color: var(--ink-3); width: 40px; }
+  .adcmp-t td.ctr { min-width: 190px; }
+  .cwrap { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+  .adcmp-t td.ctr b { min-width: 52px; font-weight: 700; color: var(--signal); }
+  .cbar { position: relative; flex: 1; height: 6px; border-radius: 3px; background: var(--rule); }
+  .cbar i { display: block; height: 100%; border-radius: 3px; background: var(--signal); }
+  .cbar u { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--ink); }
+  .adcmp .adleg { margin-top: 10px; flex-wrap: wrap; }
+  @media (max-width: 640px) {
+    .adcmp-t { min-width: 0; }
+    .adcmp-t th:nth-child(3), .adcmp-t td:nth-child(3), .adcmp-t th:nth-child(4), .adcmp-t td:nth-child(4), .adcmp-t th:nth-child(8), .adcmp-t td:nth-child(8), .adcmp-t th:nth-child(9), .adcmp-t td:nth-child(9) { display: none; }
+    .adcmp-t th, .adcmp-t td { padding: 10px 6px; }
+    .adcmp-t td.ctr { min-width: 0; }
+    .adcmp-t .cbar, .adcmp .adleg { display: none; }
+    .adcmp-t tbody th { min-width: 0; }
+  }
+  .adleg .lavg { width: 2px; height: 12px; margin-left: 8px; border-radius: 0; background: var(--ink); }
+
   /* 결과 입력 */
   .result .sec-h { border-bottom-color: var(--signal); }
   .rform { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 28px; padding: clamp(16px, 3vw, 28px); background: color-mix(in srgb, var(--ink) 3%, transparent); border-radius: var(--r-lg); }
