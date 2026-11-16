@@ -1,7 +1,7 @@
 // 과정 구성
 // 단계(STAGES) > 과제(tasks). 과제마다 한 줄 설명(desc), 핵심(points), 따라하기(steps), 프롬프트(prompt), 입력 항목(fields)
-// 입력 항목 종류: text, textarea, url, select, number, grid(표 입력), group(반복 묶음), checks(체크 목록), tree-pick(트리 체크), tree-count(트리 숫자)
-// files: true 이면 과제 페이지에 연습 파일 올리기 칸이 생김
+// 입력 항목 종류: text, textarea, url, select, number, grid(표 입력), group(반복 묶음), checks(체크 목록), tree-pick(트리 체크), tree-count(트리 숫자), utm(UTM 링크 만들기), adreport(검색광고 보고서 CSV)
+// files: true 이면 과제 페이지에 연습 파일(HTML 등) 올리기 칸, files: "image" 이면 이미지 올리기 칸(자동 축소)이 생김
 // 앞 과제 결과로 입력칸을 미리 채우는 규칙은 app.js의 DERIVE에 과제별로 둔다
 
 const JOURNEY = ["인지", "비교탐색", "경험", "구매", "공유", "사후관리"];
@@ -498,7 +498,7 @@ export const STAGES = [
     name: "광고 운영",
     chapter: "",
     desc: "촉진 수단 전체 지도에서 내 제품에 쓸 채널을 고르고, 만든 페이지로 광고를 운영합니다.",
-    produce: ["채널 설계", "검색광고 성과"],
+    produce: ["채널 설계", "측정 세팅", "메타 광고 기획서", "검색광고 성과"],
     points: [
       "촉진은 광고 · 홍보 · 판매촉진 · 인적판매 네 가지",
       "온라인 광고는 비용을 내는 페이드와 노출을 쌓는 오가닉으로 구분",
@@ -526,6 +526,59 @@ export const STAGES = [
         fields: [
           { k: "picks", label: "쓸 채널 (끝 항목 체크)", type: "tree-pick", tree: "promo" },
           { k: "why", label: "고른 이유", type: "text", ph: "타깃이 네이버에서 검색해 비교하므로 검색광고와 SEO부터" }
+        ]
+      },
+      {
+        id: "measure",
+        title: "측정 세팅",
+        desc: "광고비를 쓰기 전에 내 사이트에 GA4를 연결하고, 링크에 UTM 꼬리표를 붙여 어디서 들어왔는지 구분합니다.",
+        files: "image",
+        points: [
+          "GA4는 누가 · 어디서 · 무엇을 했는지 기록하는 무료 도구, 측정 ID(G-로 시작)만 있으면 연동 준비 끝",
+          "방문 수보다 참여율과 주요 이벤트(cta_click · sign_up)를 먼저 봄",
+          "UTM 이름은 영어 소문자, 띄어쓰기 대신 _ 사용. instagram과 Instagram은 다른 값으로 집계"
+        ],
+        steps: [
+          "analytics.google.com에서 계정 · 속성 · 웹 스트림을 만들고 G-로 시작하는 측정 ID를 복사합니다. 아래 칸에 넣고 저장하면 프롬프트 카드 ①에 자동으로 들어갑니다.",
+          "프롬프트 카드 ①을 Claude Code나 Codex에 붙여 태그를 넣고 배포합니다. 휴대폰으로 내 사이트에 들어가 GA4 보고서 > 실시간에 1명이 보이면 성공입니다.",
+          "프롬프트 카드 ②로 cta_click · sign_up 이벤트를 추가하고, GA4 관리 > 데이터 표시 > 주요 이벤트에 두 이름을 등록합니다.",
+          "아래에서 채널을 고르면 UTM 링크가 만들어집니다. 복사해 단톡방에 공유하고, 서로 눌러 실시간 보고서에 내 source가 찍히는지 확인합니다.",
+          "확인한 항목을 체크하고, 실시간 보고서 화면을 캡처해 올린 뒤 저장합니다."
+        ],
+        prompts: [
+          { title: "프롬프트 카드 ① GA4 태그 연동", body: "public 폴더의 모든 HTML 파일 <head> 안에\nGoogle 애널리틱스(GA4) 태그를 넣어줘.\n측정 ID: {{gid}}\n기존 코드와 디자인은 바꾸지 마.\n넣은 뒤 firebase deploy --only hosting 으로 배포하고,\n명령어는 실행 전에 한 줄로 설명해줘." },
+          { title: "프롬프트 카드 ② 이벤트 추가", body: "GA4 이벤트를 추가해줘.\n1. 메인 CTA 버튼을 누르면 cta_click 이벤트 전송\n2. 회원가입이 성공하면 sign_up 이벤트 전송\n   (method: email)\n기존 기능은 건드리지 말고,\n추가한 위치를 알려준 뒤 배포해줘." }
+        ],
+        fields: [
+          { k: "gid", label: "측정 ID", type: "text", ph: "G-XXXXXXXXXX" },
+          { k: "done", label: "확인한 항목", type: "checks", options: ["실시간 보고서에 내 접속이 보임", "cta_click · sign_up 이벤트가 보임", "UTM 링크로 들어온 내 source가 보임"] },
+          { k: "utm", label: "UTM 링크", type: "utm" }
+        ]
+      },
+      {
+        id: "meta",
+        title: "메타 광고 기획서",
+        desc: "카드뉴스 카피를 AI로 만들고 광고 관리자에서 게시 직전까지 세팅합니다. 목표는 트래픽, 타겟은 STP 1순위 타겟입니다.",
+        files: "image",
+        points: [
+          "목표는 캠페인에서, 사람은 광고 세트에서, 메시지는 광고에서 정함",
+          "카드뉴스는 훅 · 고민 · 해결 · 근거 · 행동 3~5장, 첫 장에서 멈추지 않으면 나머지는 보지 않음",
+          "광고 URL 매개변수에 UTM을 넣어야 GA4에서 메타 광고 유입이 따로 보임"
+        ],
+        steps: [
+          "facebook.com/ads/library에서 경쟁사나 업종 키워드로 오래 집행 중인 광고 3개를 보고 훅과 CTA의 공통점을 찾습니다.",
+          "프롬프트 카드 ③을 ChatGPT · Claude에 붙여 카드뉴스 카피와 기본 문구 · 제목 3안을 받습니다. [확인 필요] 표시는 사실을 확인해 고칩니다.",
+          "adsmanager.facebook.com에서 만들기 > 트래픽 목표를 고르고, 광고 세트에 아래 타겟과 예산 · 일정을 넣습니다.",
+          "광고에 카드뉴스를 올리고 고른 기본 문구 · 제목을 붙여 넣고, URL 매개변수에 아래 UTM을 넣습니다.",
+          "미리보기를 캡처해 올리고, 고른 문구와 집행 방법을 저장합니다. 결제수단은 게시할 때만 등록합니다."
+        ],
+        prompts: [
+          { title: "프롬프트 카드 ③ 카드뉴스 카피", body: "너는 인스타그램 광고 카피라이터야.\n아래 내용으로 카드뉴스 5장 카피를 써줘.\n\n한 문장 요약: {{summary}}\n1순위 타겟: {{target}}\n타겟의 고민: {{worry}}\n사이트 CTA: {{cta}}\n\n1장은 멈추게 하는 훅(15자 이내), 2~4장은 고민과 해결,\n5장은 행동 유도. 각 장 본문은 2줄 이내.\n광고 기본 문구 3안, 제목 3안도 함께 써줘.\n확인되지 않은 수치나 후기는 [확인 필요]로 표시해." }
+        ],
+        fields: [
+          { k: "copy", label: "기본 문구 (고른 1안)", type: "textarea", ph: "이미지 위에 보이는 본문. 첫 줄이 핵심" },
+          { k: "title", label: "제목 (고른 1안)", type: "text", ph: "이미지 아래 굵은 한 줄" },
+          { k: "run", label: "집행 방법", type: "select", options: ["초안 저장", "본인 집행", "교수 계정 집행"] }
         ]
       },
       {

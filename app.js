@@ -412,6 +412,7 @@ function stageHtml(data, st, mine, print) {
 function paintBoard(uid, data, mine) {
   $("board").innerHTML = stageHtml(data, stageOf(dashTab[uid]), mine, false) + sourcesHtml(data);
   foldTrees($("board"));
+  hydrateThumbs($("board"));
 }
 /* 인쇄 · PDF : 맨 위에 개인 정보, 이어서 현재 단계 또는 전체 단계 */
 function printDash(uid, mode) {
@@ -431,6 +432,7 @@ function printDash(uid, mode) {
       ${one}
     </header>
     <main id="pboard">${stages.map(st => stageHtml(data, st, false, true)).join("")}</main>`;
+  hydrateThumbs($("pboard"));
   document.body.classList.add("printing");
   const done = () => { document.body.classList.remove("printing"); root.innerHTML = ""; window.removeEventListener("afterprint", done); };
   window.addEventListener("afterprint", done);
@@ -489,7 +491,7 @@ function dashTask(data, st, t, j, mine) {
   const r = resultOf(data, st, t);
   const head = `<div class="dcard-head"><h3><span class="tnum">${pad(j + 1)}</span>${esc(t.id === "summary" ? "기획서 점검" : t.title)}</h3>${mine ? `<a class="more mono" href="#/stage/${st.id}/${j + 1}">${hasValue(r) ? "수정" : "작성하기"} ${icon("right")}</a>` : ""}</div>`;
   const fl = t.files ? filesHtml(uidOf(data), data, taskKey(st, t), false) : "";
-  const files = fl ? `<div class="dfiles"><span class="mono muted">연습 파일</span>${fl}</div>` : "";
+  const files = fl ? `<div class="dfiles"><span class="mono muted">${t.files === "image" ? "이미지" : "연습 파일"}</span>${fl}</div>` : "";
   if (!hasValue(r)) return `<div class="dcard${files ? "" : " is-empty"}">${head}${files || `<p class="empty-line mono">아직 작성하지 않았습니다</p>`}</div>`;
   return `<div class="dcard">${head}${renderResult(data, st, t, r)}${files}</div>`;
 }
@@ -657,6 +659,39 @@ function renderResult(data, st, t, r) {
         ${!plats.length && !others.length ? `<p class="muted">고른 채널 없음</p>` : ""}
         ${r.why ? `<p class="dnote"><span class="mono muted">고른 이유</span>${cell(r.why)}</p>` : ""}
         <details class="treefold"><summary>${icon("down")}전체 촉진 지도 보기</summary>${treeHtml(PROMO, { mode: "view", picks: [...picks] })}</details>`;
+    }
+    case "measure": {
+      const f = t.fields.find(x => x.k === "done");
+      const gid = String(r.gid || "").trim(), ok = /^G-[A-Z0-9]+$/i.test(gid);
+      const u = r.utm?.url && safeUrl(r.utm.url) ? r.utm.url : "";
+      return `<div class="meas">
+          <div class="gidbox"><span class="mono muted">GA4 측정 ID</span><b class="${ok ? "" : "muted"}">${esc(gid || "미입력")}</b>${gid && !ok ? `<small class="warn">G-로 시작하는지 확인</small>` : ""}</div>
+          <div>${checksHtml(f.options, r.done)}</div>
+        </div>
+        ${u ? `<div class="utmv"><span class="mono muted">UTM 링크 · ${esc(r.utm.ch || "")}</span><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>` : ""}`;
+    }
+    case "meta": {
+      const base = siteBase(data), host = base ? base.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "";
+      const brand = host ? host.split(".")[0] : (data.name || "내 브랜드");
+      const ms = resultOf(data, st, st.tasks.find(x => x.id === "measure"))?.utm;
+      const link = utmUrl(base, UTM_CH[0][0], ms?.campaign);
+      const img = uidOf(data) ? filesOf(data, taskKey(st, t)).find(([, f]) => isImg(f)) : null;
+      const stp = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "stp")) || {};
+      const ti = parseInt(String(stp.first || "").replace(/\D/g, ""), 10) - 1, seg = stp.segs?.[ti];
+      return `<div class="metaad">
+        <div class="mock">
+          <div class="mhead"><i class="mav">${esc(brand.slice(0, 1).toUpperCase())}</i><div><b>${esc(brand)}</b><small>광고</small></div></div>
+          ${r.copy ? `<p class="mcopy">${nl(r.copy)}</p>` : ""}
+          <div class="mimg">${img ? `<img data-thumb="${esc(uidOf(data))}/${esc(img[0])}" alt="광고 이미지">` : `<span class="mono">이미지를 올리면 여기에 보입니다</span>`}</div>
+          <div class="mfoot"><div><small>${esc(host || "내사이트.web.app")}</small><b>${esc(r.title || "제목")}</b></div><span class="mcta">더 알아보기</span></div>
+        </div>
+        <div class="mmeta">
+          <p class="dnote"><span class="mono muted">캠페인 목표</span>트래픽 (내 사이트 방문)</p>
+          <p class="dnote"><span class="mono muted">타겟 · STP 1순위</span>${seg?.name ? `${esc(seg.name)}${seg.desc ? `<small class="muted">${esc(seg.desc)}</small>` : ""}` : `<span class="muted">STP를 저장하면 표시됩니다</span>`}</p>
+          <p class="dnote"><span class="mono muted">집행 방법</span>${r.run ? `<span><span class="pill${r.run === "초안 저장" ? "" : " paid"}">${esc(r.run)}</span></span>` : `<span class="muted">-</span>`}</p>
+          <p class="dnote"><span class="mono muted">랜딩 UTM</span><a class="ulink" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(link)}</a></p>
+        </div>
+      </div>`;
     }
     case "report":
       return `${r.ad ? adReportHtml(r.ad) : `<p class="muted">보고서 파일 없음</p>`}
@@ -904,10 +939,12 @@ function mountTask(st, index) {
         </div>`).join("")}
       </section>` : ""}
       ${t.files ? `<section class="sec">
-        <h2 class="sec-h">연습 파일<span>만든 index.html 등을 올리면 대시보드에서 누구나 열어 볼 수 있습니다</span></h2>
+        ${t.files === "image" ? `<h2 class="sec-h">이미지<span>캡처나 휴대폰 사진을 그대로 올리면 자동으로 줄여서 저장합니다</span></h2>` : `<h2 class="sec-h">연습 파일<span>만든 index.html 등을 올리면 대시보드에서 누구나 열어 볼 수 있습니다</span></h2>`}
         ${app.user ? `<div class="files" id="files"></div>
         <form class="upform" id="upform">
-          <label class="upbox"><input type="file" name="up" multiple accept=".html,.htm,.css,.js,.txt,.md,.json,text/html,text/css,text/javascript,text/plain"><span><b>파일 선택</b>HTML · CSS · JS · TXT, 파일당 700KB 이하</span></label>
+          ${t.files === "image"
+            ? `<label class="upbox"><input type="file" name="up" multiple accept="image/*"><span><b>이미지 선택</b>JPG · PNG, 여러 장 한 번에 가능</span></label>`
+            : `<label class="upbox"><input type="file" name="up" multiple accept=".html,.htm,.css,.js,.txt,.md,.json,text/html,text/css,text/javascript,text/plain"><span><b>파일 선택</b>HTML · CSS · JS · TXT, 파일당 700KB 이하</span></label>`}
           <p class="note mono" id="upnote" role="status"></p>
         </form>` : `<p class="muted">파일을 올리려면 로그인하세요.</p>`}
       </section>` : ""}
@@ -930,6 +967,8 @@ function mountTask(st, index) {
   const f = $("rform");
   if (f) {
     f.addEventListener("change", e => { const k = e.target.dataset?.adfile; if (k) onAdFile(e.target, f, k); });
+    f.addEventListener("input", e => { const m = String(e.target.name || "").match(/^(\w+)\.(ch|campaign)$/); if (m && f.querySelector(`[data-utm-out="${m[1]}"]`)) updateUtm(f, m[1]); });
+    f.addEventListener("click", e => { const b = e.target.closest("[data-utm-copy]"); if (b) copyText(f.querySelector(`[data-utm-out="${b.dataset.utmCopy}"]`).textContent, b); });
     f.addEventListener("input", () => { f.dataset.dirty = "1"; });
     f.addEventListener("submit", e => onResultSubmit(e, st, t));
   }
@@ -946,7 +985,7 @@ function paintTask(st, index) {
     if (out.hint) hints.push(out.hint);
   });
   if ($("prompt-hint")) $("prompt-hint").textContent = hints.find(h => /비어/.test(h)) || hints[0] || "";
-  if ($("files")) $("files").innerHTML = filesHtml(app.user.uid, data, taskKey(st, t), true) || `<p class="empty-line mono">아직 올린 파일이 없습니다</p>`;
+  if ($("files")) { $("files").innerHTML = filesHtml(app.user.uid, data, taskKey(st, t), true) || `<p class="empty-line mono">아직 올린 ${t.files === "image" ? "이미지가" : "파일이"} 없습니다</p>`; hydrateThumbs($("files")); }
   const f = $("rform");
   if (f && !f.dataset.dirty && !f.contains(document.activeElement)) fillForm(f, t, resultOf(data, st, t) || {});
 }
@@ -976,14 +1015,18 @@ function fillPrompt(p, data) {
     service: biz.q1 || "",
     color: vres("iterate").color || "",
     font: vres("iterate").font || "",
+    gid: (() => { const ex = stageOf("execution"); const v = String(resultOf(data, ex, ex.tasks.find(x => x.id === "measure"))?.gid || "").trim(); return /^G-[A-Z0-9]+$/i.test(v) ? v.toUpperCase() : ""; })(),
+    worry: (() => { const j = res("journey"), rows = j.rows || []; return rows[JOURNEY_ROWS.indexOf(j.home)]?.worry || rows.map(x => x?.worry).find(Boolean) || ""; })(),
+    cta: (() => { const l = vres("landing"), u = siteBase(data); return [l.cta, u].filter(Boolean).join(" · "); })(),
     projectid: (() => { const m = String(vres("setup").url || "").match(/^https?:\/\/([a-z0-9-]+)\.(web\.app|firebaseapp\.com)/i); return m ? m[1] : ""; })()
   };
-  const FILL = /\{\{(summary|position|target|home|pages|journey|rivals|rivalnames|ctalink|service|color|font|projectid)\}\}/g;
-  const blank = { ctalink: "[실제 링크]", target: "[1순위 타깃]", rivalnames: "[경쟁사 상호 3곳]", color: "[#색상코드]", font: "Pretendard", projectid: "[프로젝트 ID]", service: "[서비스 한 줄]" };
+  const FILL = /\{\{(summary|position|target|home|pages|journey|rivals|rivalnames|ctalink|service|color|font|projectid|gid|worry|cta)\}\}/g;
+  const blank = { ctalink: "[실제 링크]", target: "[1순위 타깃]", rivalnames: "[경쟁사 상호 3곳]", color: "[#색상코드]", font: "Pretendard", projectid: "[프로젝트 ID]", service: "[서비스 한 줄]", gid: "G-XXXXXXXXXX", worry: "[타겟의 고민]", cta: "[사이트 CTA]" };
   let missing = 0;
   const used = FILL.test(p.body);
-  body = body.replace(FILL, (_, k) => fills[k] || (k === "font" || k === "projectid" ? blank[k] : (missing++, blank[k] || "[2단계에서 작성]")));
+  body = body.replace(FILL, (_, k) => fills[k] || (k === "font" || k === "projectid" || k === "gid" ? blank[k] : (missing++, blank[k] || "[2단계에서 작성]")));
   if (used) hint = missing ? `앞 과제 결과 중 ${missing}곳이 비어 있습니다. 해당 과제를 먼저 저장하거나 직접 채우세요` : "앞 과제 결과가 자동으로 들어갔습니다";
+  if (p.body.includes("{{gid}}")) hint = fills.gid ? "저장한 측정 ID가 들어갔습니다" : "아래 결과 저장에 측정 ID를 저장하면 자동으로 들어갑니다";
   if (body.includes("{{urls}}")) {
     const r = res("bench");
     const urls = (r?.list || []).map(x => safeUrl(x?.url)).filter(Boolean);
@@ -1004,6 +1047,32 @@ async function copyPrompt(btn) {
   const old = btn.innerHTML;
   btn.innerHTML = `${icon("check")}복사됨`;
   setTimeout(() => { btn.innerHTML = old; }, 1800);
+}
+
+/* UTM 링크 : 채널 이름 규칙 (7주차 자료 기준) */
+const UTM_CH = [["메타 광고 (인스타그램)", "instagram", "paid_social"], ["인스타 프로필 링크", "instagram", "social"], ["카톡방 공유", "kakao", "social"], ["네이버 블로그 글", "naver_blog", "referral"], ["이메일 · 뉴스레터", "newsletter", "email"]];
+const utmSlug = v => String(v || "").trim().toLowerCase().replace(/[\s-]+/g, "_").replace(/[^a-z0-9_]/g, "").slice(0, 40);
+function siteBase(data) {
+  const v = stageOf("vibecoding");
+  const get = id => resultOf(data, v, v.tasks.find(x => x.id === id)) || {};
+  return safeUrl(get("deploy").url) || safeUrl(get("setup").url) || "";
+}
+function utmUrl(base, ch, campaign) {
+  const c = UTM_CH.find(x => x[0] === ch) || UTM_CH[0];
+  const b = base || "https://내사이트.web.app/";
+  return `${b}${b.includes("?") ? "&" : "?"}utm_source=${c[1]}&utm_medium=${c[2]}&utm_campaign=${utmSlug(campaign) || "open_event"}`;
+}
+function updateUtm(form, k) {
+  const el = name => form.elements.namedItem(name);
+  const base = siteBase(me());
+  const out = form.querySelector(`[data-utm-out="${k}"]`), note = form.querySelector(`[data-utm-note="${k}"]`);
+  if (out) out.textContent = utmUrl(base, el(`${k}.ch`)?.value, el(`${k}.campaign`)?.value);
+  if (note) { note.className = "note mono" + (base ? " ok" : ""); note.textContent = base ? "바이브코딩에서 저장한 내 사이트 주소가 들어갔습니다" : "바이브코딩 · 공개하기에 사이트 주소를 저장하면 자동으로 들어갑니다"; }
+}
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch {} ta.remove(); }
+  const old = btn.innerHTML; btn.innerHTML = `${icon("check")}복사됨`; setTimeout(() => { btn.innerHTML = old; }, 1800);
 }
 
 /* 검색광고 보고서 (네이버 다차원 보고서 CSV) */
@@ -1118,6 +1187,16 @@ function fieldHtml(f) {
   if (f.type === "checks") {
     return `<fieldset class="fchecks"><legend class="mono">${esc(f.label)}</legend><div class="chkl">${f.options.map(o => `<label class="chk"><input type="checkbox" name="${f.k}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join("")}</div></fieldset>`;
   }
+  if (f.type === "utm") {
+    return `<fieldset class="futm wide"><legend class="mono">${esc(f.label)}</legend>
+      <div class="utm-row">
+        <label class="field"><span class="mono">채널</span><select name="${f.k}.ch">${UTM_CH.map(([l]) => `<option>${esc(l)}</option>`).join("")}</select></label>
+        <label class="field"><span class="mono">캠페인 이름 (영어 소문자, _ 사용)</span><input name="${f.k}.campaign" type="text" maxlength="40" placeholder="open_event"></label>
+      </div>
+      <div class="utm-out"><code data-utm-out="${f.k}"></code><button class="btn ghost sm" type="button" data-utm-copy="${f.k}">${icon("copy")}복사</button></div>
+      <p class="note mono" data-utm-note="${f.k}"></p>
+    </fieldset>`;
+  }
   if (f.type === "adreport") {
     return `<fieldset class="fad wide"><legend class="mono">${esc(f.label)}</legend>
       <label class="upbox"><input type="file" data-adfile="${f.k}" accept=".csv,text/csv"><span><b>보고서 파일 선택</b>네이버 검색광고 다차원 보고서 CSV</span></label>
@@ -1154,6 +1233,7 @@ function collectForm(form, t) {
   for (const f of t.fields) {
     if (f.type === "checks") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
     else if (f.type === "tree-pick") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
+    else if (f.type === "utm") { const ch = val(`${f.k}.ch`), campaign = utmSlug(val(`${f.k}.campaign`)); out[f.k] = { ch, campaign, url: utmUrl(siteBase(me()), ch, campaign) }; }
     else if (f.type === "adreport") { try { out[f.k] = JSON.parse(el(f.k)?.value || "null"); } catch { out[f.k] = null; } }
     else if (f.type === "tree-count") { out[f.k] = {}; walk(TREES[f.tree], n => { if (!isCount(n)) return; const v = val(`${f.k}.${n.id}`); out[f.k][n.id] = v === "" ? "" : Math.max(0, Math.round(Number(v)) || 0); }); }
     else if (f.type === "grid") out[f.k] = f.rows.map((_, i) => Object.fromEntries(f.cols.map(c => [c.k, val(`${f.k}.${i}.${c.k}`)])));
@@ -1171,6 +1251,7 @@ function fillForm(form, t, r) {
   for (const f of t.fields) {
     if (f.type === "checks") { const on = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = on.has(x.value); }); }
     else if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
+    else if (f.type === "utm") { set(`${f.k}.ch`, r[f.k]?.ch || UTM_CH[0][0]); set(`${f.k}.campaign`, r[f.k]?.campaign || ""); updateUtm(form, f.k); }
     else if (f.type === "adreport") { set(f.k, r[f.k] ? JSON.stringify(r[f.k]) : ""); const pv = form.querySelector(`[data-adpv="${f.k}"]`); if (pv) pv.innerHTML = r[f.k] ? adReportHtml(r[f.k]) : ""; }
     else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id] ?? auto?.[f.k]?.[n.id]); });
     else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k] ?? auto?.[f.k]?.[i]?.[c.k])));
@@ -1731,10 +1812,14 @@ const uidOf = data => [...app.students].find(([, v]) => v === data)?.[0] || "";
 const filesOf = (data, key) => Object.entries(data?.files || {}).filter(([, f]) => f && f.task === key).sort((a, b) => (a[1].at || 0) - (b[1].at || 0));
 const hasFiles = (data, st, t) => Boolean(t.files) && filesOf(data, taskKey(st, t)).length > 0;
 const kb = n => n >= 1024 ? `${Math.round(n / 1024)}KB` : `${n}B`;
+const isImg = f => /\.(jpe?g|png|webp|gif)$/i.test(f?.name || "");
 function filesHtml(uid, data, key, own) {
-  const list = filesOf(data, key);
-  if (!list.length || !uid) return "";
-  return `<ul class="flist">${list.map(([id, f]) => `<li>
+  const all = filesOf(data, key);
+  if (!all.length || !uid) return "";
+  const imgs = all.filter(([, f]) => isImg(f)), list = all.filter(([, f]) => !isImg(f));
+  const thumbs = imgs.length ? `<ul class="fthumbs">${imgs.map(([id, f]) => `<li><a href="#/file/${encodeURIComponent(uid)}/${encodeURIComponent(id)}" title="${esc(f.name)}"><img data-thumb="${esc(uid)}/${esc(id)}" alt="${esc(f.name)}"></a>${own ? `<button type="button" class="tdel" data-del="${esc(id)}" aria-label="${esc(f.name)} 삭제"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>` : ""}</li>`).join("")}</ul>` : "";
+  if (!list.length) return thumbs;
+  return thumbs + `<ul class="flist">${list.map(([id, f]) => `<li>
     <a href="#/file/${encodeURIComponent(uid)}/${encodeURIComponent(id)}"><b>${esc(f.name)}</b><span class="mono muted">${kb(f.size || 0)}</span>${icon("right")}</a>
     ${own ? `<button type="button" class="btn ghost sm" data-del="${esc(id)}">삭제</button>` : ""}
   </li>`).join("")}</ul>`;
@@ -1745,7 +1830,7 @@ function onUpload(e, st, t) {
   const note = $("upnote");
   if (!me()?.name) { flash(note, false, `먼저 <a href="#/profile">내정보</a>에서 이름을 저장하세요`); input.value = ""; return; }
   const picked = [...input.files];
-  const bad = picked.find(f => f.size > FILE_MAX);
+  const bad = picked.find(f => f.size > FILE_MAX && !f.type.startsWith("image/"));
   if (bad) { flash(note, false, `${esc(bad.name)} : 700KB를 넘습니다. 이미지는 파일 안에 넣지 말고 자리만 잡아 주세요`); input.value = ""; return; }
   if (Object.keys(me().files || {}).length + picked.length > 40) { flash(note, false, "파일은 모두 40개까지 올릴 수 있습니다"); input.value = ""; return; }
   const { db, fsMod } = app.fb;
@@ -1754,17 +1839,56 @@ function onUpload(e, st, t) {
   (async () => {
     try {
       for (const file of picked) {
-        const text = await file.text();
+        const img = file.type.startsWith("image/");
+        if (img) flash(note, true, `${esc(file.name)} 줄이는 중`);
+        const text = img ? await shrinkImage(file) : await file.text();
         const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-        const name = file.name.slice(0, 100);
+        const name = (img ? file.name.replace(/\.[^.]*$/, "") + ".jpg" : file.name).slice(0, 100);
+        const size = img ? Math.round((text.length - text.indexOf(",") - 1) * 0.75) : file.size;
         await fsMod.setDoc(fsMod.doc(db, "students", uid, "files", id), { name, content: text, updatedAt: fsMod.serverTimestamp() });
-        await saveMine({ files: { [id]: { name, task: taskKey(st, t), size: file.size, at: Date.now() } } });
+        fileCache.set(`${uid}/${id}`, { name, content: text });
+        await saveMine({ files: { [id]: { name, task: taskKey(st, t), size, at: Date.now() } } });
       }
-      flash(note, true, `${picked.length}개 올렸습니다 · 이름을 누르면 열립니다`);
+      flash(note, true, `${picked.length}개 올렸습니다 · ${t.files === "image" ? "누르면 크게 볼 수 있습니다" : "이름을 누르면 열립니다"}`);
     } catch (err) {
-      flash(note, false, err?.code === "permission-denied" ? "올릴 권한이 없습니다. 교수자에게 보안 규칙 게시를 요청하세요" : "올리지 못했습니다");
+      flash(note, false, err?.code === "permission-denied" ? "올릴 권한이 없습니다. 교수자에게 보안 규칙 게시를 요청하세요" : err?.message === "image" ? "이미지를 읽지 못했습니다. JPG나 PNG로 다시 올려 주세요" : "올리지 못했습니다");
     } finally { input.value = ""; }
   })();
+}
+// 이미지는 JPG로 줄여 data URL 문자열로 저장 (보안 규칙 한도 720,000자 안쪽)
+async function shrinkImage(file) {
+  let bmp;
+  try { bmp = await createImageBitmap(file); } catch { throw new Error("image"); }
+  let w = bmp.width, h = bmp.height;
+  const k = Math.min(1, 1600 / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k);
+  const cv = document.createElement("canvas");
+  for (let i = 0; i < 8; i++) {
+    cv.width = w; cv.height = h;
+    const g = cv.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(bmp, 0, 0, w, h);
+    for (const q of [0.85, 0.75, 0.65]) { const u = cv.toDataURL("image/jpeg", q); if (u.length <= 690000) { bmp.close?.(); return u; } }
+    w = Math.round(w * 0.8); h = Math.round(h * 0.8);
+  }
+  bmp.close?.();
+  throw new Error("image");
+}
+const thumbJobs = new Map();
+function loadFile(uid, fid) {
+  const key = `${uid}/${fid}`;
+  if (fileCache.has(key)) return Promise.resolve(fileCache.get(key));
+  if (!thumbJobs.has(key)) {
+    const { db, fsMod } = app.fb;
+    thumbJobs.set(key, fsMod.getDoc(fsMod.doc(db, "students", uid, "files", fid)).then(d => { if (!d.exists()) return null; fileCache.set(key, d.data()); return d.data(); }).catch(() => null).finally(() => thumbJobs.delete(key)));
+  }
+  return thumbJobs.get(key);
+}
+function hydrateThumbs(scope) {
+  if (!scope || !app.fb) return;
+  scope.querySelectorAll("img[data-thumb]:not([src])").forEach(img => {
+    const [uid, fid] = img.dataset.thumb.split("/");
+    const hit = fileCache.get(`${uid}/${fid}`);
+    if (hit && /^data:image\//.test(hit.content)) { img.src = hit.content; return; }
+    loadFile(uid, fid).then(c => { if (c && /^data:image\//.test(c.content)) img.src = c.content; else img.closest("li, .mimg")?.classList.add("broken"); });
+  });
 }
 async function onDeleteFile(id) {
   const f = me()?.files?.[id];
@@ -1794,7 +1918,7 @@ function mountFile(uid, fid) {
   $("fdown").addEventListener("click", () => {
     const c = fileCache.get(`${uid}/${fid}`); if (!c) return;
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([c.content], { type: "text/plain;charset=utf-8" }));
+    a.href = /^data:image\//.test(c.content) ? c.content : URL.createObjectURL(new Blob([c.content], { type: "text/plain;charset=utf-8" }));
     a.download = c.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
   const key = `${uid}/${fid}`;
@@ -1810,7 +1934,11 @@ function showFile(key) {
   const c = fileCache.get(key);
   $("fname").textContent = c.name;
   const stage = $("fstage");
-  if (/\.html?$/i.test(c.name)) {
+  if (/^data:image\//.test(c.content || "")) {
+    const im = document.createElement("img");
+    im.className = "fimg"; im.alt = c.name; im.src = c.content;
+    stage.replaceChildren(im);
+  } else if (/\.html?$/i.test(c.name)) {
     const fr = document.createElement("iframe");
     fr.title = c.name;
     fr.setAttribute("sandbox", "allow-scripts allow-forms allow-modals allow-popups");
@@ -1843,7 +1971,7 @@ function makeZip(entries) {
   const d = new Date(), time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
   let offset = 0;
   for (const e of entries) {
-    const name = enc.encode(e.name), data = enc.encode(e.text), crc = crc32(data);
+    const name = enc.encode(e.name), data = e.bytes || enc.encode(e.text), crc = crc32(data);
     const h = new DataView(new ArrayBuffer(30));
     [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, name.length, 2], [28, 0, 2]].forEach(([o, v, n]) => n === 4 ? h.setUint32(o, v, true) : h.setUint16(o, v, true));
     parts.push(h, name, data);
@@ -1884,7 +2012,9 @@ async function downloadAllFiles() {
         let path = `${safeName([s.sid, s.name].filter(Boolean).join("_"))}/${safeName(t?.task.title || "기타")}/${safeName(f.name)}`;
         for (let k = 2; used.has(path); k++) path = path.replace(/(\.[^./]*)?$/, m => `_${k}${m}`);
         used.add(path);
-        entries.push({ name: path, text: d.data().content || "" });
+        const ct = d.data().content || "";
+        const m = ct.match(/^data:[^;]+;base64,(.*)$/s);
+        entries.push(m ? { name: path, bytes: Uint8Array.from(atob(m[1]), ch => ch.charCodeAt(0)) } : { name: path, text: ct });
       } catch { fail++; }
     }
     if (!entries.length) { say("파일을 받지 못했습니다"); return; }
