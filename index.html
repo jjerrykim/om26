@@ -875,6 +875,33 @@
   .tree.dim li.on::before, .tree li.hot::before { border-top-color: var(--signal); border-top-width: 2px; }
   .tree li.hot:not(.d0) > .tnw > .tn { background: color-mix(in srgb, var(--signal) 9%, var(--paper)); border-color: var(--signal); }
   .tree li.hot.k-act > .tnw > .tn { color: var(--signal); }
+  .chmx { min-width: 0; margin-bottom: 16px; table-layout: fixed; }
+  .chmx thead tr:last-child th:first-child, .chmx tbody th { width: 22%; }
+  @media (max-width: 640px) { .chmx th, .chmx td { padding: 8px 4px; font-size: 12px; } .chmx tbody th { font-size: 13px; } .chmx thead .grp small { display: block; margin: 0; } .chmx thead th { white-space: normal; } }
+  .chmx th, .chmx td { text-align: center; vertical-align: middle; }
+  .chmx tbody th, .chmx thead tr:last-child th:first-child { text-align: left; }
+  .chmx thead .grp { font-size: 13px; font-weight: 700; border-bottom: 2px solid; }
+  .chmx thead .grp small { margin-left: 6px; font-weight: 500; }
+  .chmx thead .grp.paid { color: var(--signal); border-color: var(--signal); }
+  .chmx thead .grp.org { color: #1f7a4d; border-color: #1f7a4d; }
+  .chmx thead tr:first-child th:first-child { border-bottom: 0; }
+  .chmx tbody th { font-size: var(--fs-body); }
+  .chmx td.paid { background: color-mix(in srgb, var(--signal) 4%, transparent); }
+  .chmx td.org { background: color-mix(in srgb, #1f7a4d 4%, transparent); }
+  .chmx .mk { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; }
+  .chmx td.paid .mk { background: var(--signal); }
+  .chmx td.org .mk { background: #1f7a4d; }
+  .chmx .na { color: var(--line); }
+  .chother { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chother span { display: grid; gap: 2px; padding: 8px 12px; font-weight: 700; color: var(--ink); background: color-mix(in srgb, var(--ink) 4%, transparent); border-radius: var(--r); }
+  .chother small { font-size: 12px; font-weight: 500; color: var(--ink-3); }
+  .treefold { margin-top: 16px; }
+  .treefold > summary { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid var(--rule); border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer; list-style: none; }
+  .treefold > summary::-webkit-details-marker { display: none; }
+  .treefold > summary:hover { border-color: var(--ink-3); color: var(--ink); }
+  .treefold > summary .ic { width: 14px; height: 14px; transition: transform .2s; }
+  .treefold[open] > summary .ic { transform: rotate(180deg); }
+  .treefold[open] > summary { margin-bottom: 16px; }
   .picked { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
   .picked span { display: grid; gap: 2px; padding: 8px 12px; font-weight: 700; color: var(--signal); background: color-mix(in srgb, var(--signal) 7%, var(--paper)); border: 1px solid color-mix(in srgb, var(--signal) 30%, var(--paper)); border-radius: var(--r); }
   .picked small { font-size: 12px; font-weight: 500; color: var(--ink-3); }
