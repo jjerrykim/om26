@@ -644,20 +644,8 @@ function renderResult(data, st, t, r) {
     }
     case "channels": {
       const picks = new Set(r.picks || []);
-      // 플랫폼 × 수단 표 : 검색광고 · 이미지광고(페이드), SEO · 인기도 순(오가닉)
-      const COLS = [["검색광고 SA", "검색광고", "paid"], ["이미지광고 DA", "이미지광고", "paid"], ["SEO", "SEO", "org"], ["인기도 순", "인기도 노출", "org"]];
-      const colNodes = COLS.map(([t]) => { let f = null; walk(PROMO, n => { if (!f && n.t === t && n.c) f = n; }); return f; });
-      const grid = new Map(), others = [];
-      walk(PROMO, n => {
-        if (!picks.has(n.id)) return;
-        const ci = colNodes.findIndex(c => c && n.parent === c);
-        if (ci >= 0) { if (!grid.has(n.t)) grid.set(n.t, new Set()); grid.get(n.t).add(ci); return; }
-        const path = []; for (let p = n.parent; p && p.depth > 0; p = p.parent) path.unshift(p.t);
-        others.push({ path: path.filter(x => x !== "온라인").join(" · "), t: n.t });
-      });
-      const ORDER = ["네이버", "구글", "인스타그램", "페이스북", "유튜브", "커머스 플랫폼"];
-      const plats = [...grid.keys()].sort((a, b) => (ORDER.indexOf(a) + 99) % 99 - (ORDER.indexOf(b) + 99) % 99);
-      const has = (ci, plat) => colNodes[ci]?.c?.some(x => x.t === plat);
+      const { grid, others, plats } = channelPicks(r);
+      const COLS = CH_COLS, has = (ci, plat) => chColNodes()[ci]?.c?.some(x => x.t === plat);
       const nPaid = plats.reduce((a, p) => a + [...grid.get(p)].filter(ci => COLS[ci][2] === "paid").length, 0);
       const nOrg = plats.reduce((a, p) => a + [...grid.get(p)].filter(ci => COLS[ci][2] === "org").length, 0);
       return `${plats.length ? `<div class="tbl-wrap"><table class="tbl chmx">
@@ -689,6 +677,24 @@ function renderResult(data, st, t, r) {
     default:
       return `<dl class="dl7">${t.fields.map(f => `<div><dt>${esc(f.label)}</dt><dd>${cell(typeof r[f.k] === "string" ? r[f.k] : "")}</dd></div>`).join("")}</dl>`;
   }
+}
+// 채널 설계 : 플랫폼 × 수단 표 (검색광고 · 이미지광고 = 페이드, SEO · 인기도 순 = 오가닉)
+const CH_COLS = [["검색광고 SA", "검색광고", "paid"], ["이미지광고 DA", "이미지광고", "paid"], ["SEO", "SEO", "org"], ["인기도 순", "인기도 노출", "org"]];
+const CH_ORDER = ["네이버", "구글", "인스타그램", "페이스북", "유튜브", "커머스 플랫폼"];
+const chRank = p => { const i = CH_ORDER.indexOf(p); return i < 0 ? 99 : i; };
+let chNodes = null;
+const chColNodes = () => chNodes ||= CH_COLS.map(([t]) => { let f = null; walk(PROMO, n => { if (!f && n.t === t && n.c) f = n; }); return f; });
+function channelPicks(r) {
+  const picks = new Set(r?.picks || []), cols = chColNodes();
+  const grid = new Map(), others = [];
+  walk(PROMO, n => {
+    if (!picks.has(n.id)) return;
+    const ci = cols.findIndex(c => c && n.parent === c);
+    if (ci >= 0) { if (!grid.has(n.t)) grid.set(n.t, new Set()); grid.get(n.t).add(ci); return; }
+    const path = []; for (let p = n.parent; p && p.depth > 0; p = p.parent) path.unshift(p.t);
+    others.push({ path: path.filter(x => x !== "온라인").join(" · "), t: n.t });
+  });
+  return { grid, others, plats: [...grid.keys()].sort((a, b) => chRank(a) - chRank(b)) };
 }
 function checksHtml(options, done) {
   const on = new Set(done || []);
@@ -1544,6 +1550,7 @@ function mountClass() {
     </header>
     <section class="race" id="race" aria-label="진도 트랙"></section>
     <main><ol class="roster" id="roster"></ol></main>
+    <section class="sec adcmp" id="chcmp" aria-label="채널 설계 비교"></section>
     <section class="sec adcmp" id="adcmp" aria-label="검색광고 성과 비교"></section>`;
   raceAnim = true;
   $("adcmp").addEventListener("click", e => { const b = e.target.closest("[data-adsort]"); if (b) { adSort = b.dataset.adsort; paintAdCompare(); } });
@@ -1598,7 +1605,37 @@ function paintClass() {
     $("bulk").dataset.n = n;
   }
   paintRoster();
+  paintChannelCompare();
   paintAdCompare();
+}
+// 채널 설계 비교 : 학생별로 수단마다 고른 플랫폼, 위에는 많이 고른 조합
+function paintChannelCompare() {
+  const el = $("chcmp");
+  if (!el || !app.loaded) return;
+  const st = stageOf("execution"), t = st?.tasks.find(x => x.id === "channels");
+  if (!t) { el.innerHTML = ""; return; }
+  const rows = sortedStudents().map(([uid, s]) => ({ uid, s, r: resultOf(s, st, t) })).filter(x => x.r?.picks?.length).map(x => ({ ...x, staff: isStaff(x.uid, x.s), ...channelPicks(x.r) }));
+  const head = `<h2 class="sec-h">채널 설계 비교<span>광고 운영 · 채널 설계를 저장한 학생</span></h2>`;
+  if (!rows.length) { el.innerHTML = `${head}<p class="empty mono">아직 채널 설계를 저장한 학생이 없습니다</p>`; return; }
+  const cls = rows.filter(x => !x.staff);
+  const tally = new Map();
+  for (const x of cls) {
+    x.grid.forEach((set, plat) => set.forEach(ci => { const k = `${plat} ${CH_COLS[ci][1]}`; tally.set(k, { k, ci, n: (tally.get(k)?.n || 0) + 1 }); }));
+    x.others.forEach(o => { const k = `${o.path ? o.path + " · " : ""}${o.t}`; tally.set(k, { k, ci: -1, n: (tally.get(k)?.n || 0) + 1 }); });
+  }
+  const top = [...tally.values()].sort((a, b) => b.n - a.n).slice(0, 8);
+  const colCount = CH_COLS.map((_, ci) => cls.filter(x => [...x.grid.values()].some(set => set.has(ci))).length);
+  const kind = ci => ci < 0 ? "etc" : CH_COLS[ci][2];
+  el.innerHTML = `${head}
+    ${top.length ? `<div class="chtop"><span class="mono muted">많이 고른 조합</span><ol>${top.map(x => `<li class="${kind(x.ci)}"><b>${esc(x.k)}</b><span class="mono">${x.n}명</span></li>`).join("")}</ol></div>` : ""}
+    <div class="tbl-wrap"><table class="tbl chcmp-t">
+      <thead><tr><th>이름</th>${CH_COLS.map(([, l, k], ci) => `<th class="${k}">${l}<small>${colCount[ci]}명</small></th>`).join("")}<th>그 밖의 수단</th></tr></thead>
+      <tbody>${rows.map(x => `<tr class="${x.uid === app.user?.uid ? "me" : ""}">
+        <th><a href="#/s/${encodeURIComponent(x.uid)}">${esc(x.s.name)}</a>${x.staff ? ` <small class="muted">교수자</small>` : ""}</th>
+        ${CH_COLS.map(([, , k], ci) => { const ps = x.plats.filter(p => x.grid.get(p).has(ci)); return `<td class="${k}">${ps.map(p => `<span class="pt">${esc(p)}</span>`).join("")}</td>`; }).join("")}
+        <td class="etc">${x.others.map(o => `<span class="pt">${esc(o.t === "오가닉" && o.path === "홍보" ? "홍보" : o.t)}</span>`).join("")}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>`;
 }
 // 검색광고 성과 비교 : 보고서를 올린 학생만, 정렬 기준 선택
 let adSort = "ctr";
