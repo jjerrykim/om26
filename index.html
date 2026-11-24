@@ -525,6 +525,17 @@
   .futm { display: grid; gap: 12px; min-width: 0; margin: 0; padding: 0; border: 0; }
   .futm legend { margin-bottom: 8px; }
   .utm-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .utm-item { display: grid; gap: 10px; padding-bottom: 14px; border-bottom: 1px solid var(--rule); }
+  .utm-item:last-of-type { border-bottom: 0; padding-bottom: 0; }
+  .copies { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+  .copies .pane h4 { margin: 6px 0; font-size: var(--fs-body); }
+  .copies .pane p { margin: 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .tbl.bench { margin-top: 0; }
+  .tbl-wrap:has(.bench) { margin-top: 16px; }
+  .mmeta .tk { margin-right: 6px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+  .mmeta .dnote > span:not(.mono) { display: block; }
+  .utmv a + .mono { margin-top: 8px; }
+  @media (max-width: 760px) { .copies { grid-template-columns: minmax(0, 1fr); } }
   .utm-out { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--line); }
   .utm-out code { flex: 1; min-width: 0; font: 500 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--signal); overflow-wrap: anywhere; }
   .utm-out .btn { flex: none; }

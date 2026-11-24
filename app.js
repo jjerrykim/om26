@@ -62,7 +62,15 @@ const icon = k => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path 
 /* 데이터 접근 */
 const JOURNEY_ROWS = ["인지", "비교탐색", "경험", "구매", "공유", "사후관리"];
 const taskKey = (stage, task) => `${stage.id}_${task.id}`;
-const resultOf = (s, stage, task) => s?.results?.[taskKey(stage, task)] || null;
+const resultOf = (s, stage, task) => { const k = taskKey(stage, task), r = s?.results?.[k] || null; return r && NORM[k] ? NORM[k](r) : r; };
+// 강의안이 바뀌기 전에 저장한 결과를 지금 형식으로 맞춤
+const NORM = {
+  execution_measure: r => {
+    const map = { "실시간 보고서에 내 접속이 보임": ["실시간 개요에 내 접속이 보임"], "cta_click · sign_up 이벤트가 보임": ["cta_click 이벤트가 보임", "sign_up 이벤트가 보임"] };
+    return { ...r, utm: Array.isArray(r.utm) ? r.utm : r.utm ? [r.utm] : r.utm, done: Array.isArray(r.done) ? [...new Set(r.done.flatMap(x => map[x] || [x]))] : r.done };
+  },
+  execution_meta: r => (r.copies || !(r.copy || r.title)) ? r : { ...r, copies: [{ copy: r.copy || "", title: r.title || "" }] }
+};
 const taskDone = (s, stage, task) => hasValue(resultOf(s, stage, task));
 const stageOf = id => STAGES.find(s => s.id === id);
 const allTasks = () => STAGES.flatMap(st => st.tasks.map(t => ({ stage: st, task: t })));
@@ -663,28 +671,30 @@ function renderResult(data, st, t, r) {
     case "measure": {
       const f = t.fields.find(x => x.k === "done");
       const gid = String(r.gid || "").trim(), ok = /^G-[A-Z0-9]+$/i.test(gid);
-      const u = r.utm?.url && safeUrl(r.utm.url) ? r.utm.url : "";
+      const links = (r.utm || []).filter(x => x?.url && safeUrl(x.url));
       return `<div class="meas">
           <div class="gidbox"><span class="mono muted">GA4 측정 ID</span><b class="${ok ? "" : "muted"}">${esc(gid || "미입력")}</b>${gid && !ok ? `<small class="warn">G-로 시작하는지 확인</small>` : ""}</div>
           <div>${checksHtml(f.options, r.done)}</div>
         </div>
-        ${u ? `<div class="utmv"><span class="mono muted">UTM 링크 · ${esc(r.utm.ch || "")}</span><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>` : ""}`;
+        ${links.length ? `<div class="utmv">${links.map((x, i) => `<span class="mono muted">UTM 링크 ${i + 1} · ${esc(x.ch || "")}</span><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.url)}</a>`).join("")}</div>` : ""}`;
     }
     case "meta": {
-      const base = siteBase(data);
-      const ms = resultOf(data, st, st.tasks.find(x => x.id === "measure"))?.utm;
-      const link = utmUrl(base, UTM_CH[0][0], ms?.campaign);
+      const link = safeUrl(r.landing) ? r.landing : "";
       const stp = resultOf(data, stageOf("strategy"), stageOf("strategy").tasks.find(x => x.id === "stp")) || {};
       const ti = parseInt(String(stp.first || "").replace(/\D/g, ""), 10) - 1, seg = stp.segs?.[ti];
+      const bench = (r.bench || []).filter(b => b && (b.hook || b.flow || b.cta)), copies = (r.copies || []).filter(hasValue);
+      const tgt = [["연령", r.age], ["지역", r.area], ["관심사", r.interest]].filter(([, v]) => v);
       return `<div class="metaad">
         ${metaMockHtml(data, uidOf(data), r)}
         <div class="mmeta">
-          <p class="dnote"><span class="mono muted">캠페인 목표</span>트래픽 (내 사이트 방문)</p>
-          <p class="dnote"><span class="mono muted">타겟 · STP 1순위</span>${seg?.name ? `${esc(seg.name)}${seg.desc ? `<small class="muted">${esc(seg.desc)}</small>` : ""}` : `<span class="muted">STP를 저장하면 표시됩니다</span>`}</p>
-          <p class="dnote"><span class="mono muted">집행 방법</span>${r.run ? `<span><span class="pill${r.run === "초안 저장" ? "" : " paid"}">${esc(r.run)}</span></span>` : `<span class="muted">-</span>`}</p>
-          <p class="dnote"><span class="mono muted">랜딩 UTM</span><a class="ulink" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(link)}</a></p>
+          <p class="dnote"><span class="mono muted">캠페인 목표</span>${esc(r.goal || "트래픽")}</p>
+          <p class="dnote"><span class="mono muted">타겟${seg?.name ? ` · STP 1순위 ${esc(seg.name)}` : ""}</span>${tgt.length ? tgt.map(([k, v]) => `<span><b class="tk">${k}</b>${esc(v)}</span>`).join("") : `<span class="muted">-</span>`}</p>
+          <p class="dnote"><span class="mono muted">집행 여부</span>${r.run ? `<span><span class="pill${r.run === "초안 저장" ? "" : " paid"}">${esc(r.run)}</span></span>` : `<span class="muted">-</span>`}</p>
+          ${link ? `<p class="dnote"><span class="mono muted">랜딩 URL</span><a class="ulink" href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(link)}</a></p>` : ""}
         </div>
-      </div>`;
+      </div>
+      ${copies.length > 1 ? `<div class="copies">${copies.map((c, i) => `<div class="pane"><span class="mono muted">카피 ${i + 1}안</span><h4>${esc(c.title || "-")}</h4><p>${cell(c.copy)}</p></div>`).join("")}</div>` : ""}
+      ${bench.length ? `<div class="tbl-wrap"><table class="tbl bench"><thead><tr><th>벤치마킹</th><th>훅 (첫 문장)</th><th>장별 구성</th><th>CTA</th></tr></thead><tbody>${bench.map(b => `<tr><th>${esc(b.src || "-")}</th><td>${esc(b.hook || "-")}</td><td>${esc(b.flow || "-")}</td><td>${esc(b.cta || "-")}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
     }
     case "report":
       return `${r.ad ? adReportHtml(r.ad) : `<p class="muted">보고서 파일 없음</p>`}
@@ -960,7 +970,7 @@ function mountTask(st, index) {
   const f = $("rform");
   if (f) {
     f.addEventListener("change", e => { const k = e.target.dataset?.adfile; if (k) onAdFile(e.target, f, k); });
-    f.addEventListener("input", e => { const m = String(e.target.name || "").match(/^(\w+)\.(ch|campaign)$/); if (m && f.querySelector(`[data-utm-out="${m[1]}"]`)) updateUtm(f, m[1]); });
+    f.addEventListener("input", e => { const m = String(e.target.name || "").match(/^(\w+)\.\d+\.(ch|campaign)$/); if (m && f.querySelector(`[data-utm-note="${m[1]}"]`)) updateUtm(f, m[1]); });
     f.addEventListener("click", e => { const b = e.target.closest("[data-utm-copy]"); if (b) copyText(f.querySelector(`[data-utm-out="${b.dataset.utmCopy}"]`).textContent, b); });
     f.addEventListener("input", () => { f.dataset.dirty = "1"; });
     f.addEventListener("submit", e => onResultSubmit(e, st, t));
@@ -1043,7 +1053,9 @@ async function copyPrompt(btn) {
 }
 
 // 메타 광고 미리보기 카드 (인스타그램 피드 모양)
-function metaMockHtml(data, uid, r) {
+const metaPick = r => (r?.copies || []).find(c => c && (c.copy || c.title)) || { copy: r?.copy || "", title: r?.title || "" };
+function metaMockHtml(data, uid, r0) {
+  const r = metaPick(r0);
   const st = stageOf("execution"), t = st.tasks.find(x => x.id === "meta");
   const base = siteBase(data), host = base ? base.replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "";
   const brand = host ? host.split(".")[0] : (data.name || "내 브랜드");
@@ -1071,8 +1083,8 @@ function utmUrl(base, ch, campaign) {
 function updateUtm(form, k) {
   const el = name => form.elements.namedItem(name);
   const base = siteBase(me());
-  const out = form.querySelector(`[data-utm-out="${k}"]`), note = form.querySelector(`[data-utm-note="${k}"]`);
-  if (out) out.textContent = utmUrl(base, el(`${k}.ch`)?.value, el(`${k}.campaign`)?.value);
+  const note = form.querySelector(`[data-utm-note="${k}"]`);
+  form.querySelectorAll(`[data-utm-out^="${k}."]`).forEach(out => { const p = out.dataset.utmOut; out.textContent = utmUrl(base, el(`${p}.ch`)?.value, el(`${p}.campaign`)?.value); });
   if (note) { note.className = "note mono" + (base ? " ok" : ""); note.textContent = base ? "바이브코딩에서 저장한 내 사이트 주소가 들어갔습니다" : "바이브코딩 · 공개하기에 사이트 주소를 저장하면 자동으로 들어갑니다"; }
 }
 async function copyText(text, btn) {
@@ -1194,12 +1206,15 @@ function fieldHtml(f) {
     return `<fieldset class="fchecks"><legend class="mono">${esc(f.label)}</legend><div class="chkl">${f.options.map(o => `<label class="chk"><input type="checkbox" name="${f.k}" value="${esc(o)}"><span>${esc(o)}</span></label>`).join("")}</div></fieldset>`;
   }
   if (f.type === "utm") {
+    const n = f.count || 1;
     return `<fieldset class="futm wide"><legend class="mono">${esc(f.label)}</legend>
-      <div class="utm-row">
-        <label class="field"><span class="mono">채널</span><select name="${f.k}.ch">${UTM_CH.map(([l]) => `<option>${esc(l)}</option>`).join("")}</select></label>
-        <label class="field"><span class="mono">캠페인 이름 (영어 소문자, _ 사용)</span><input name="${f.k}.campaign" type="text" maxlength="40" placeholder="open_event"></label>
-      </div>
-      <div class="utm-out"><code data-utm-out="${f.k}"></code><button class="btn ghost sm" type="button" data-utm-copy="${f.k}">${icon("copy")}복사</button></div>
+      ${Array.from({ length: n }, (_, i) => `<div class="utm-item">
+        <div class="utm-row">
+          <label class="field"><span class="mono">${n > 1 ? `링크 ${i + 1} · ` : ""}채널</span><select name="${f.k}.${i}.ch">${UTM_CH.map(([l]) => `<option>${esc(l)}</option>`).join("")}</select></label>
+          <label class="field"><span class="mono">캠페인 이름 (영어 소문자, _ 사용)</span><input name="${f.k}.${i}.campaign" type="text" maxlength="40" placeholder="open_event"></label>
+        </div>
+        <div class="utm-out"><code data-utm-out="${f.k}.${i}"></code><button class="btn ghost sm" type="button" data-utm-copy="${f.k}.${i}">${icon("copy")}복사</button></div>
+      </div>`).join("")}
       <p class="note mono" data-utm-note="${f.k}"></p>
     </fieldset>`;
   }
@@ -1239,7 +1254,7 @@ function collectForm(form, t) {
   for (const f of t.fields) {
     if (f.type === "checks") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
     else if (f.type === "tree-pick") out[f.k] = [...form.querySelectorAll(`input[name="${f.k}"]:checked`)].map(x => x.value);
-    else if (f.type === "utm") { const ch = val(`${f.k}.ch`), campaign = utmSlug(val(`${f.k}.campaign`)); out[f.k] = { ch, campaign, url: utmUrl(siteBase(me()), ch, campaign) }; }
+    else if (f.type === "utm") out[f.k] = Array.from({ length: f.count || 1 }, (_, i) => { const ch = val(`${f.k}.${i}.ch`), campaign = utmSlug(val(`${f.k}.${i}.campaign`)); return { ch, campaign, url: utmUrl(siteBase(me()), ch, campaign) }; });
     else if (f.type === "adreport") { try { out[f.k] = JSON.parse(el(f.k)?.value || "null"); } catch { out[f.k] = null; } }
     else if (f.type === "tree-count") { out[f.k] = {}; walk(TREES[f.tree], n => { if (!isCount(n)) return; const v = val(`${f.k}.${n.id}`); out[f.k][n.id] = v === "" ? "" : Math.max(0, Math.round(Number(v)) || 0); }); }
     else if (f.type === "grid") out[f.k] = f.rows.map((_, i) => Object.fromEntries(f.cols.map(c => [c.k, val(`${f.k}.${i}.${c.k}`)])));
@@ -1257,7 +1272,7 @@ function fillForm(form, t, r) {
   for (const f of t.fields) {
     if (f.type === "checks") { const on = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = on.has(x.value); }); }
     else if (f.type === "tree-pick") { const ids = new Set(r[f.k] || []); form.querySelectorAll(`input[name="${f.k}"]`).forEach(x => { x.checked = ids.has(x.value); }); }
-    else if (f.type === "utm") { set(`${f.k}.ch`, r[f.k]?.ch || UTM_CH[0][0]); set(`${f.k}.campaign`, r[f.k]?.campaign || ""); updateUtm(form, f.k); }
+    else if (f.type === "utm") { for (let i = 0; i < (f.count || 1); i++) { set(`${f.k}.${i}.ch`, r[f.k]?.[i]?.ch || UTM_CH[i % UTM_CH.length][0]); set(`${f.k}.${i}.campaign`, r[f.k]?.[i]?.campaign || ""); } updateUtm(form, f.k); }
     else if (f.type === "adreport") { set(f.k, r[f.k] ? JSON.stringify(r[f.k]) : ""); const pv = form.querySelector(`[data-adpv="${f.k}"]`); if (pv) pv.innerHTML = r[f.k] ? adReportHtml(r[f.k]) : ""; }
     else if (f.type === "tree-count") walk(TREES[f.tree], n => { if (isCount(n)) set(`${f.k}.${n.id}`, r[f.k]?.[n.id] ?? auto?.[f.k]?.[n.id]); });
     else if (f.type === "grid") f.rows.forEach((_, i) => f.cols.forEach(c => set(`${f.k}.${i}.${c.k}`, r[f.k]?.[i]?.[c.k] ?? auto?.[f.k]?.[i]?.[c.k])));
@@ -1291,6 +1306,11 @@ const DERIVE = {
   vibecoding_landing: () => landingDefaults(),
   vibecoding_deploy: ({ get }) => ({ url: get("vibecoding_setup").url || get("vibecoding_iterate").preview || "" }),
   analysis_direct: ({ get }) => { const ad = get("execution_report").ad, t = ad?.totals; return t ? { counts: { n: t.imp, n_0: t.clk, n_1: Math.max(0, t.imp - t.clk) }, period: ad.period || "" } : {}; },
+  execution_meta: ({ get }) => {
+    const links = get("execution_measure").utm, list = Array.isArray(links) ? links : links ? [links] : [];
+    const meta = list.find(x => x?.ch === UTM_CH[0][0] && safeUrl(x.url));
+    return { bench: [{ src: "메타 광고 라이브러리" }, { src: "인스타그램" }, { src: "인스타그램" }], goal: "트래픽", landing: meta?.url || utmUrl(siteBase(me()), UTM_CH[0][0], list[0]?.campaign) };
+  },
   execution_channels: ({ get }) => { const m = get("strategy_summary"); return { why: m.channel ? `전략 한 문장의 채널 ${m.channel} · ${m.stage || ""} 단계 공략`.trim() : "" }; }
 };
 function derive(st, t) {
@@ -1716,7 +1736,7 @@ function paintMetaCompare() {
   if (!el || !app.loaded) return;
   const st = stageOf("execution"), t = st?.tasks.find(x => x.id === "meta");
   if (!t) { el.innerHTML = ""; return; }
-  const all = sortedStudents().map(([uid, s]) => ({ uid, s, r: resultOf(s, st, t) })).filter(x => x.r && (x.r.copy || x.r.title));
+  const all = sortedStudents().map(([uid, s]) => ({ uid, s, r: resultOf(s, st, t) })).filter(x => x.r && (metaPick(x.r).copy || metaPick(x.r).title));
   const head = `<h2 class="sec-h">메타 광고 비교<span>광고 운영 · 메타 광고 기획서를 저장한 학생</span></h2>`;
   if (!all.length) { el.innerHTML = `${head}<p class="empty mono">아직 메타 광고 기획서를 저장한 학생이 없습니다</p>`; return; }
   const runs = t.fields.find(f => f.k === "run").options;
